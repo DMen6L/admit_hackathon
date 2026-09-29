@@ -7,11 +7,69 @@
     <title>Magic game · Hand tracking</title>
   </head>
   <body>
-    <main>
-      <header>
-        <p class="eyebrow">Magic game / first experiment</p>
-        <h1>Your hands are the controller.</h1>
-        <p>Raise an index finger to draw, then open your palm to release the spell.</p>
+    <div id="login-screen" class="auth-shell">
+      <main class="auth-layout">
+        <section class="auth-intro" aria-labelledby="welcome-title">
+          <p class="brand"><span aria-hidden="true">✦</span> Wizard Duel</p>
+          <div>
+            <p class="eyebrow">Webcam-powered spellcasting</p>
+            <h1 id="welcome-title">Your hands hold the magic.</h1>
+            <p class="auth-intro__copy">Enter the arena, draw ancient runes, and turn movement into spells—all from your browser.</p>
+          </div>
+          <p class="auth-feature"><span aria-hidden="true">◎</span> Camera processing stays on this device.</p>
+        </section>
+
+        <section class="auth-card" aria-labelledby="login-title">
+          <div class="auth-card__heading">
+            <p class="eyebrow">Welcome back</p>
+            <h2 id="login-title">Enter the arena</h2>
+            <p>Sign in to continue to your spellbook.</p>
+          </div>
+
+          <form id="login-form" novalidate>
+            <div class="field">
+              <label for="email">Email address</label>
+              <input id="email" name="email" type="email" autocomplete="username" inputmode="email" placeholder="mage@example.com" aria-describedby="email-error" required />
+              <span id="email-error" class="field-error" aria-live="polite"></span>
+            </div>
+
+            <div class="field">
+              <label for="password">Password</label>
+              <div class="password-field">
+                <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password" aria-describedby="password-error" required />
+                <button id="password-toggle" class="password-toggle" type="button" aria-label="Show password" aria-pressed="false">Show</button>
+              </div>
+              <span id="password-error" class="field-error" aria-live="polite"></span>
+            </div>
+
+            <label class="checkbox-field">
+              <input id="keep-signed-in" type="checkbox" />
+              <span>Keep me signed in</span>
+            </label>
+
+            <p id="login-error" class="form-error" role="alert" hidden></p>
+            <button id="login-submit" class="primary-action" type="submit">Enter the arena</button>
+          </form>
+
+          <aside class="demo-access" aria-label="Prototype access details">
+            <strong>Demo access</strong>
+            <span><code>mage@wizard.dev</code> / <code>Spellbound1</code></span>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <main id="game-screen" class="game-shell" hidden>
+      <header class="game-header">
+        <div>
+          <p class="eyebrow">Magic game / first experiment</p>
+          <h1>Your hands are the controller.</h1>
+          <p>Raise an index finger to draw, then open your palm to release the spell.</p>
+        </div>
+        <div class="account-menu" aria-label="Signed-in account">
+          <span id="current-user"></span>
+          <button id="sign-out" type="button">Sign out</button>
+        </div>
       </header>
 
       <section class="tracker" aria-label="Hand tracking preview">

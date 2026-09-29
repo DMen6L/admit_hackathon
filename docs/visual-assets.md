@@ -2,21 +2,35 @@
 
 ## Purpose
 
-This directory documents the three Wizard Duel SVG boards stored in [`web/public/assets/design/`](../web/public/assets/design/). The boards are the visual source of truth for character proportions, animation timing, effects, collision guidance, and export naming.
+This directory documents the four Wizard Duel SVG boards stored in [`web/public/assets/design/`](../web/public/assets/design/). Together they are the visual source of truth for the duel-screen composition, character proportions, animation timing, effects, collision guidance, and export naming.
 
-They are reference boards, not runtime sprite atlases. Each SVG is one large illustrated canvas containing artwork and explanatory labels. Before the game can animate an individual character or effect, its frames must be exported into separate transparent images or a deliberately packed atlas.
+They are reference boards, not runtime sprite atlases or application screens. Each SVG is one large illustrated canvas containing artwork and explanatory labels. Before the game can animate an individual character or effect, its frames must be exported into separate transparent images or a deliberately packed atlas; the duel-screen mockup must be implemented as responsive UI rather than embedded as one image.
 
-The imported files use stable, lowercase, kebab-case names. The original files in Downloads remain unchanged.
+The three production boards use lowercase, kebab-case names. `duel_file.svg` retains its supplied filename so existing references to the asset remain stable.
 
 ## Asset inventory
 
 | File | Canvas | Contents | Intended use |
 | --- | ---: | --- | --- |
+| [`duel_file.svg`](../web/public/assets/design/duel_file.svg) | 1600 × 1000 | Complete desktop duel-screen mockup with arena, combat HUD, camera status, rune recognition feedback, spell legend, and dodge instruction | Layout, visual hierarchy, UI-state, and gameplay-integration reference |
 | [`wizard-duel-character-design.svg`](../web/public/assets/design/wizard-duel-character-design.svg) | 2200 × 1500 | Berik and Alisher hero sprites, palettes, turnarounds, silhouettes, costume callouts, pivots, sockets, hurtboxes, and export rules | Character art direction and frame-production reference |
 | [`wizard-duel-vfx-library.svg`](../web/public/assets/design/wizard-duel-vfx-library.svg) | 2200 × 1450 | Fireball, shield, lightning, dodge smear, hit spark, casting glyph, and VFX implementation rules | Effect-frame and timing reference |
 | [`wizard-duel-animation-implementation.svg`](../web/public/assets/design/wizard-duel-animation-implementation.svg) | 2200 × 1650 | Idle, fireball-cast, and dodge strips for both characters, plus gameplay event frames and naming examples | Animation-state and gameplay-event reference |
 
-The SVGs are self-contained vector documents. They contain no scripts, embedded raster images, external links, or external asset references. Their text requests `Pixelify Sans` and `IBM Plex Mono`; a system monospace fallback is used when those fonts are unavailable.
+The SVGs are self-contained vector documents. They contain no scripts, embedded raster images, external links, or external asset references. The three production boards request `Pixelify Sans` and `IBM Plex Mono`, with a system monospace fallback when those fonts are unavailable. The duel-screen mockup converts its lettering to vector paths, so it has no runtime font dependency.
+
+## Duel-screen composition
+
+`duel_file.svg` presents the intended desktop battle view at 1600 × 1000. It is a visual target, not a pixel-perfect requirement for every viewport. Preserve the hierarchy and states while allowing the implementation to reflow at smaller sizes.
+
+- Header: “Wizard Duel” identity and the “Webcam-controlled multiplayer combat” descriptor.
+- Match HUD: Berik and Alisher names, opposing health bars (`85 / 100` and `72 / 100` in the example), a `01:24` duel timer, and round `1 / 3` status.
+- Arena: a moonlit, symmetrical pixel-art battleground with both wizards, projectile and shield effects, and explicit `CASTING` and `INCOMING` state labels.
+- Camera panel: a mirrored `170 × 112` preview, tracking-skeleton overlay, and positive `Hand detected` tracking state.
+- Rune-casting panel: the recognized triangle glyph, `FIREBALL` result, `91%` accuracy, and a confidence/progress bar.
+- Rune legend: triangle maps to Fireball, circle to Shield, and `Z` to Lightning; leaning left or right triggers Dodge.
+
+The layout uses a near-black and navy base, pale-gold headings and focus details, blue for Berik and defensive magic, red/orange for Alisher and offensive magic, and green for successful tracking and recognition. Thin blue borders, squared pixel geometry, and generous panel spacing establish the interface language. When implementing it, keep status meaning available through text or icons rather than color alone, and build health, timer, round, camera, recognition, and spell states as live semantic UI.
 
 ## Characters
 
@@ -107,7 +121,7 @@ A future runtime asset layout could be:
 
 ```text
 web/public/assets/
-├── design/                 # the three source/reference boards
+├── design/                 # the four source/reference boards
 ├── characters/
 │   ├── berik/
 │   └── alisher/
@@ -119,12 +133,13 @@ web/public/assets/
 
 The current application recognizes hand-drawn triangle, circle, and lightning shapes. It emits spell events for Aegis Ward, Astral Veil, and Storm Lance, but it does not yet contain a duel scene, character state machine, combat simulation, sprite renderer, or VFX player.
 
-The art boards introduce fireball, shield, lightning, dodge, and hit effects. These concepts are not all mapped one-to-one to the prototype's current spell bindings. That mapping should be decided explicitly when combat is implemented; importing the boards does not change gesture recognition or gameplay behavior.
+The art boards introduce fireball, shield, lightning, dodge, and hit effects. The duel-screen mockup goes further by proposing triangle → Fireball, circle → Shield, `Z` → Lightning, and lateral leaning → Dodge. These concepts are not mapped one-to-one to the prototype's current spell bindings (`Aegis Ward`, `Astral Veil`, and `Storm Lance`). Treat the mockup mappings as design proposals until combat configuration explicitly adopts them; importing the boards does not change gesture recognition or gameplay behavior.
 
 ## Refactor notes
 
-- Removed download-copy suffixes and normalized all filenames.
+- Removed download-copy suffixes and normalized the three production-board filenames.
 - Formatted the previously single-line SVG sources so diffs and reviews are readable.
 - Added accessible SVG titles and descriptions without changing the artwork.
+- Preserved the supplied `duel_file.svg` filename while documenting its different naming convention.
 - Preserved `shape-rendering="crispEdges"`, canvas dimensions, geometry, colors, labels, and timing notes.
 - Kept the boards separate by responsibility instead of merging them into one oversized document.

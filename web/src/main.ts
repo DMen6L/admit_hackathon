@@ -10,6 +10,8 @@ import {
   type SpellCastPayload,
 } from './spells/spell-resolver';
 import { presentCastResult } from './ui/cast-result';
+import { AuthController } from './auth/auth-controller';
+import { DemoAuthService } from './auth/auth-service';
 
 const video = document.querySelector<HTMLVideoElement>('#camera')!;
 const pathCanvas = document.querySelector<HTMLCanvasElement>('#path')!;
@@ -333,6 +335,12 @@ async function startCamera(): Promise<void> {
 startButton.addEventListener('click', () => { void startCamera(); });
 stopButton.addEventListener('click', () => stopCamera());
 window.addEventListener('pagehide', () => stopCamera());
+
+const authController = new AuthController(
+  new DemoAuthService(window.localStorage, window.sessionStorage),
+  { onSignOut: () => stopCamera('Signed out. Your camera has been released.') },
+);
+void authController.initialize();
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {

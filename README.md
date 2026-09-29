@@ -23,6 +23,8 @@ npm run dev
 
 Open the localhost URL shown in the terminal, click **Start camera**, and allow webcam access. Use **Stop camera** to release the camera. Camera access requires localhost or HTTPS; opening the HTML file directly is not the supported development workflow.
 
+The prototype opens on a sign-in screen. Use `mage@wizard.dev` with password `Spellbound1`. This local demo account exists only to exercise the complete interface and session flow; it stores no password and should be replaced by a server-backed implementation before real accounts are introduced.
+
 `npm run setup` downloads Google's pretrained `hand_landmarker.task` model and copies the WebAssembly runtime from the installed MediaPipe package. Both are served locally by the app. The generated assets are ignored by Git; rerun setup after installing or updating dependencies. Players do not need Node.js, Python, or a local installation.
 
 The initial files are:
@@ -217,4 +219,4 @@ Preserve the defining loop: **webcam input → movement recognition → game act
 
 ## Visual design references
 
-The character, animation, and effects reference boards live in [`web/public/assets/design/`](web/public/assets/design/). See [`docs/visual-assets.md`](docs/visual-assets.md) for their contents, production constraints, runtime status, and the expected frame-export workflow.
+The duel-screen, character, animation, and effects reference boards live in [`web/public/assets/design/`](web/public/assets/design/). See [`docs/visual-assets.md`](docs/visual-assets.md) for their contents, UI composition, production constraints, runtime status, and the expected frame-export workflow.
