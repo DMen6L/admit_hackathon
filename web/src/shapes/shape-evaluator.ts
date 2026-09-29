@@ -47,7 +47,7 @@ export interface ShapeEvaluation {
   correction?: string;
   ambiguous: boolean;
   diagnostics: ShapeDiagnostics;
-  candidates?: Array<{ templateId: string; score: number; evidence: boolean; outlineError: number; failed: string[] }>;
+  candidates?: Array<{ templateId: string; score: number; evidence: boolean; outlineError: number; triangleFitError?: number; failed: string[] }>;
 }
 
 interface ShapeFeatures {
@@ -77,6 +77,7 @@ interface Candidate {
   nearEvidence: boolean;
   closureAmbiguous: boolean;
   straightRunFraction: number;
+  triangleFit: number;
 }
 
 const RESAMPLE_POINTS = 24;
@@ -91,6 +92,7 @@ const NEAR_MISS_THRESHOLD = 0.40;
 const AMBIGUITY_MARGIN = 0.08;
 const POLYGON_MATCH_OUTLINE_ERROR = 0.18;
 const POLYGON_MATCH_CLOSURE_ERROR = 0.20;
+const TRIANGLE_EDGE_FIT_ERROR = 0.055;
 const ZERO_DIAGNOSTICS: ShapeDiagnostics = {
   pointError: 1,
   directionError: 1,
@@ -167,6 +169,37 @@ function perpendicularDistance(point: PathPoint, start: PathPoint, end: PathPoin
   return Math.abs(
     (end.x - start.x) * (start.y - point.y) - (start.x - point.x) * (end.y - start.y),
   ) / lineLength;
+}
+
+/** Fit three ordered sides to a closed stroke, allowing a short rounded corner or hook. */
+function triangleEdgeFit(points: readonly PathPoint[]): number {
+  const cycle = points.slice(0, -1);
+  const count = cycle.length;
+  if (count < 9) return Infinity;
+  let best = Infinity;
+  for (let first = 0; first < count - 6; first += 1) {
+    for (let second = first + 3; second < count - 3; second += 1) {
+      for (let third = second + 3; third < count; third += 1) {
+        if (count - third + first < 3) continue;
+        const vertices = [cycle[first], cycle[second], cycle[third]];
+        const sides = [distance(vertices[0], vertices[1]), distance(vertices[1], vertices[2]),
+          distance(vertices[2], vertices[0])];
+        const perimeter = sides[0] + sides[1] + sides[2];
+        if (Math.min(...sides) < perimeter * 0.16) continue;
+        let error = 0;
+        let maximum = 0;
+        for (let index = 0; index < count; index += 1) {
+          const side = index >= first && index < second ? 0
+            : index >= second && index < third ? 1 : 2;
+          const deviation = perpendicularDistance(cycle[index], vertices[side], vertices[(side + 1) % 3]);
+          error += deviation;
+          maximum = Math.max(maximum, deviation);
+        }
+        best = Math.min(best, error / count + maximum * 0.25);
+      }
+    }
+  }
+  return best;
 }
 
 function simplify(points: readonly PathPoint[], tolerance: number): PathPoint[] {
@@ -456,6 +489,10 @@ function scoreCandidate(attempt: ShapeFeatures, template: ShapeTemplate, templat
   const lengthRatio = templateFeatures.length <= Number.EPSILON ? 0 : attempt.length / templateFeatures.length;
   const lengthError = lengthRatio <= Number.EPSILON ? 1 : clamp(Math.abs(Math.log(lengthRatio)) / Math.log(2));
   const outlineError = alignedOutlineError(attempt, templateFeatures, template);
+  const triangleFit = triangleRules ? triangleEdgeFit(attempt.points) : Infinity;
+  const flexibleTriangle = triangleRules && triangleFit <= TRIANGLE_EDGE_FIT_ERROR
+    && attempt.fillRatio >= 0.35 && attempt.fillRatio <= 0.66
+    && cornerError <= 0.35 && attempt.closureError <= POLYGON_MATCH_CLOSURE_ERROR;
   const diagnostics: ShapeDiagnostics = {
     pointError: outlineError,
     directionError: directionErrorValue,
@@ -510,11 +547,12 @@ function scoreCandidate(attempt: ShapeFeatures, template: ShapeTemplate, templat
       && attempt.straightRunFraction <= 0.20
     : triangleRules
       ? closureCompatible && attempt.fillRatio <= 0.66 && cornerError <= 0.35
-        && (cornerError <= 0.25 || outlineError <= POLYGON_MATCH_OUTLINE_ERROR)
+        && (cornerError <= 0.25 || outlineError <= POLYGON_MATCH_OUTLINE_ERROR || flexibleTriangle)
       : closureCompatible && cornerError <= 0.25 && polylineGeometryCompatible;
   const matchFit = geometry === 'circle' ? true
     : triangleRules
-      ? outlineError <= POLYGON_MATCH_OUTLINE_ERROR && attempt.closureError <= POLYGON_MATCH_CLOSURE_ERROR
+      ? (outlineError <= POLYGON_MATCH_OUTLINE_ERROR || flexibleTriangle)
+        && attempt.closureError <= POLYGON_MATCH_CLOSURE_ERROR
       : outlineError <= 0.26;
   const evidence = geometryEvidence && matchFit;
   return {
@@ -529,6 +567,7 @@ function scoreCandidate(attempt: ShapeFeatures, template: ShapeTemplate, templat
       : geometryEvidence,
     closureAmbiguous: attempt.closureAmbiguous,
     straightRunFraction: attempt.straightRunFraction,
+    triangleFit,
   };
 }
 
@@ -603,12 +642,13 @@ export class ShapeEvaluator {
         score: candidate.score,
         evidence: candidate.evidence,
         outlineError: diagnostics.pointError,
+        ...(triangleRules ? { triangleFitError: candidate.triangleFit } : {}),
         failed: [
           closureFailed ? 'topology' : '',
           triangleRules && diagnostics.cornerError > 0.35 ? 'corners' : '',
           triangleRules && attempt.fillRatio > 0.66 ? 'filled area' : '',
           !triangleRules && geometry !== 'circle' && diagnostics.cornerError > 0.25 ? 'corners' : '',
-          triangleRules && diagnostics.pointError > POLYGON_MATCH_OUTLINE_ERROR ? 'outline' : '',
+          triangleRules && diagnostics.pointError > POLYGON_MATCH_OUTLINE_ERROR && !candidate.evidence ? 'outline' : '',
           !triangleRules && geometry !== 'circle' && diagnostics.pointError > 0.26 ? 'outline' : '',
           circleFailed ? 'roundness' : '',
           geometry === 'circle' && attempt.straightRunFraction > 0.20 ? 'straight sections' : '',

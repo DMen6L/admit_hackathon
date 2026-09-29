@@ -40,7 +40,9 @@ if (input.schemaVersion === 1 && Array.isArray(input.frames)) {
       replayed: summarize(current?.evaluation),
       candidates: current?.evaluation.candidates?.map((candidate) => ({
         shape: candidate.templateId, score: Math.round(candidate.score * 100) / 100,
-        evidence: candidate.evidence, failed: candidate.failed,
+        evidence: candidate.evidence, outlineError: candidate.outlineError,
+        ...(candidate.triangleFitError === undefined ? {} : { triangleFitError: candidate.triangleFitError }),
+        failed: candidate.failed,
       })) ?? [],
     }));
   }

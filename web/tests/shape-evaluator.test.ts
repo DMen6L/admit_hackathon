@@ -116,7 +116,7 @@ describe('shape evaluator', () => {
     expect(evaluation.score).toBeGreaterThanOrEqual(0.60);
   });
 
-  it('accepts a rounded triangle while withholding casts for flattened, retraced outlines', () => {
+  it('accepts triangular sides despite template proportions, while rejecting an open flat outline', () => {
     const evaluator = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES);
     const path = (pairs: number[][]): PathPoint[] => pairs.map(([x, y]) => ({ x, y }));
     const rounded = path([
@@ -128,7 +128,7 @@ describe('shape evaluator', () => {
       [.629, 0], [.71, .11], [.921, .349], [1, .51], [.751, .535],
       [.289, .508], [0, .525], [.131, .462], [.355, .357], [.507, .239],
     ]);
-    const retraced = path([
+    const broadClosed = path([
       [.634, 0], [.75, .122], [.966, .334], [.976, .444], [.689, .417],
       [.263, .389], [0, .407], [.121, .351], [.351, .259], [.547, .168], [.633, .06],
     ]);
@@ -136,7 +136,35 @@ describe('shape evaluator', () => {
     expect(evaluator.evaluate(rounded).status).toBe('matched');
     expect(evaluator.evaluate(rounded).templateId).toBe('triangle');
     expect(evaluator.evaluate(flattened).status).toBe('near-miss');
-    expect(evaluator.evaluate(retraced).status).toBe('near-miss');
+    expect(evaluator.evaluate(broadClosed).status).toBe('matched');
+  });
+
+  it('matches wide captured triangles with a short extra corner', () => {
+    const widePaths = [
+      [
+        [.366, .344], [.372, .356], [.403, .401], [.436, .451], [.445, .469],
+        [.442, .481], [.428, .490], [.402, .495], [.366, .500], [.326, .504],
+        [.285, .505], [.249, .506], [.223, .507], [.205, .504], [.198, .495],
+        [.203, .482], [.236, .442], [.289, .403], [.334, .365], [.351, .349],
+      ],
+      [
+        [.432, .368], [.472, .411], [.501, .446], [.502, .455], [.497, .461],
+        [.484, .467], [.463, .472], [.433, .477], [.400, .478], [.368, .476],
+        [.341, .473], [.321, .474], [.313, .470], [.317, .461], [.345, .436],
+        [.382, .407], [.416, .378], [.430, .367], [.442, .361],
+      ],
+    ];
+    const evaluator = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES);
+    for (const pairs of widePaths) {
+      const evaluation = evaluator.evaluate({
+        key: 'captured', label: 'Right', aspectRatio: 4 / 3,
+        points: pairs.map(([x, y]) => ({ x, y })),
+      });
+      expect(evaluation.candidates?.find((candidate) => candidate.templateId === 'triangle')?.outlineError)
+        .toBeGreaterThan(0.18);
+      expect(evaluation.status).toBe('matched');
+      expect(evaluation.templateId).toBe('triangle');
+    }
   });
 
   it('does not confuse a broad rounded rectangle with a triangle', () => {

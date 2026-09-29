@@ -11,13 +11,12 @@ export interface CastResultPresentation {
 }
 
 export function presentCastResult(evaluation: ShapeEvaluation): CastResultPresentation {
-  const score = `${Math.round(evaluation.score * 100)}% match score`;
   if (evaluation.status === 'matched') {
     return {
       state: 'success',
       icon: '✓',
       title: 'SPELL CAST',
-      detail: `${evaluation.templateName ?? 'Rune'} · ${score}`,
+      detail: evaluation.templateName ?? 'Rune',
     };
   }
   if (evaluation.status === 'near-miss') {
@@ -25,7 +24,7 @@ export function presentCastResult(evaluation: ShapeEvaluation): CastResultPresen
       state: 'near-miss',
       icon: '!',
       title: 'ALMOST',
-      detail: `${evaluation.templateName ?? 'Shape'} · ${score}`,
+      detail: evaluation.templateName ?? 'Shape',
       correction: evaluation.correction ?? 'Follow the broad outline more closely',
     };
   }
