@@ -59,7 +59,7 @@ The preview is mirrored, while the landmark data passed to `processHands` uses t
 
 The first custom casting gesture is a straightened index finger. `processHands` checks that the index is extended while the middle, ring, and pinky fingers are curled; the thumb may rest naturally and the wrist may rotate while drawing. The pose must remain stable for about 90 ms before `justStarted` is emitted. When the pose ends, the stroke enters a pending release state; the user must extend the four non-thumb fingers in a stable, camera-facing palm for about 90 ms to emit `justReleased`. A casting hand is highlighted in gold and labeled in the readout. Diagnostic fields provide concrete corrections for both casting and release poses.
 
-While casting, the index fingertip writes a gold path on a dedicated canvas over the webcam preview. The recorder keeps both raw timestamped points and a filtered path. Recognition corrects for the video aspect ratio, then compares aligned outlines as well as topology, corners, closure, and circle geometry for the sample triangle, circle, and lightning templates. A brief tracking or pose gap can be recovered; longer gaps and release timeouts cancel the pending attempt. A persistent result card reports **SPELL CAST**, **ALMOST**, **CAST FAILED**, or **CAST CANCELLED** with a correction when available. The shown match score is a heuristic and is not a calibrated probability.
+While casting, the index fingertip writes a gold path on a dedicated canvas over the webcam preview. The recorder keeps both raw timestamped points and a filtered path. Recognition corrects for the video aspect ratio, then compares aligned outlines as well as topology, corners, closure, and circle geometry for six rune templates. A brief tracking or pose gap can be recovered; longer gaps and release timeouts cancel the pending attempt. A persistent result card reports **SPELL CAST**, **ALMOST**, **CAST FAILED**, or **CAST CANCELLED** with a correction when available. The shown match score is a heuristic and is not a calibrated probability.
 
 When running `npm run dev`, the **Recognition diagnostics** panel can record local landmark and stroke data, download it as JSON, and replay it through the current recognition pipeline. It never records camera pixels. Capture starts only when the developer clicks **Start local capture**. Replay does not dispatch spell events. Candidate scores and the last raw/filtered outline are shown in the panel. The panel and browser capture code are absent from the production build. For labeled evaluation, see [`web/evaluation/README.md`](web/evaluation/README.md).
 
@@ -261,14 +261,26 @@ arena with a compact camera panel, stacking the camera underneath on small scree
 Artwork loading times out after 15 seconds and offers a reload link on failure.
 
 After API-backed sign-in, the courtyard renders both wizards with live health bars.
-Use Fireball, Shield, Lightning, or the opponent spell buttons to test it without a camera.
-Webcam `spell-cast` events also trigger Berik's visuals: `rune.triangle` → Fireball,
-`rune.circle` → Shield, `rune.lightning` → Lightning. This is a demo presentation
-mapping; the existing spell payloads and recognition names are unchanged.
+The player's duel name comes from the signed-in login. The local opponent is labeled
+`Computer (AI)`; the duel accepts an opponent username for a future player match.
+The tracking panel has a Spellbook popout explaining the available rune shapes and effects. Players cast through the camera; Pause and Restart remain visible duel controls.
+Webcam `spell-cast` events trigger Berik's actions: triangle → Fireball, circle → Shield,
+zigzag → Lightning, one continuous hourglass → Twin Flare, square or rectangle →
+Time Lock, and a straight line → Spark. The Spellbook shows all six shapes.
 
 `src/duel/demo-duel.ts` contains isolated local demo rules (100 health, 20 fireball
-damage, 15 lightning damage, 900 ms cast cooldown, 4.3-second one-hit shield).
+damage, 15 lightning damage, 45 Twin Flare damage, 7 Spark damage, 900 ms cast
+cooldown, and a 3.5-second one-hit shield). Time Lock reveals the enemy spell
+and adds 1.5 seconds to an attack that is charging, or to the next attack if
+none is charging.
 `duel-view.ts` loads assets and renders these rules. A backend integration should
+replace the local model with authoritative server state. The opponent attempts a
+spell after a short opening delay and alternates fireball and lightning. Each
+attempt has a 15% chance to fizzle without a projectile. His charge lasts at
+least 2.2 seconds before release, giving the player time to draw and release a
+shield. The charge warning hides the spell identity until Time Lock reveals it.
+A defensive shield can bypass an offensive cooldown during an incoming attack.
+Logout resets the duel; hidden pages pause it.
 replace the local model with authoritative server state. The opponent attacks after
 a short opening delay and then alternates fireball and lightning. Its visible rune charges for 3 seconds before release, giving the player time to draw and release a shield. A defensive shield can bypass an offensive cooldown during an incoming attack. The opponent spell buttons trigger extra practice attacks. Logout resets the duel; hidden pages pause it.
 The practice duel ends at zero health and offers Restart duel.

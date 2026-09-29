@@ -7,6 +7,9 @@ export const DEFAULT_SPELL_BINDINGS: SpellBindings = Object.freeze({
   triangle: 'rune.triangle',
   circle: 'rune.circle',
   zigzag: 'rune.lightning',
+  hourglass: 'rune.hourglass',
+  square: 'rune.square',
+  line: 'rune.line',
 });
 
 export interface SpellDefinition {
@@ -19,18 +22,33 @@ export interface SpellDefinition {
 export const DEFAULT_SPELL_DEFINITIONS: readonly SpellDefinition[] = [
   {
     spellId: 'rune.triangle',
-    name: 'Aegis Ward',
-    runeInterpretation: 'Three edges bind a protective boundary around the caster.',
+    name: 'Fireball',
+    runeInterpretation: 'A triangle focuses flame into a traveling attack.',
   },
   {
     spellId: 'rune.circle',
-    name: 'Astral Veil',
-    runeInterpretation: 'The unbroken ring gathers and holds arcane energy.',
+    name: 'Shield',
+    runeInterpretation: 'The unbroken ring absorbs the next incoming hit.',
   },
   {
     spellId: 'rune.lightning',
-    name: 'Storm Lance',
-    runeInterpretation: 'Alternating turns focus the charge into a directed strike.',
+    name: 'Lightning',
+    runeInterpretation: 'Alternating turns focus a quick electrical strike.',
+  },
+  {
+    spellId: 'rune.hourglass',
+    name: 'Twin Flare',
+    runeInterpretation: 'Two joined triangles charge a slow, powerful attack.',
+  },
+  {
+    spellId: 'rune.square',
+    name: 'Time Lock',
+    runeInterpretation: 'Four walls slow the opponent’s next attack.',
+  },
+  {
+    spellId: 'rune.line',
+    name: 'Spark',
+    runeInterpretation: 'A single stroke releases a fast, light attack.',
   },
 ];
 

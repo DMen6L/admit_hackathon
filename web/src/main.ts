@@ -11,6 +11,7 @@ import {
 } from './spells/spell-resolver';
 import { presentCastResult } from './ui/cast-result';
 import { mountDuel } from './duel/duel-view';
+import { mountSpellbook } from './duel/spellbook';
 import './duel/battle-page.css';
 import { ApiAuthService } from './auth/auth-service';
 
@@ -45,6 +46,15 @@ const resultRune = document.querySelector<HTMLElement>('#cast-result-rune')!;
 const resultCorrection = document.querySelector<HTMLElement>('#cast-result-correction')!;
 const placeholder = document.querySelector<HTMLParagraphElement>('#placeholder')!;
 const preview = document.querySelector<HTMLDivElement>('.preview')!;
+const cameraViewToggle = document.querySelector<HTMLButtonElement>('#camera-view-toggle')!;
+const spellbook = mountSpellbook(document.querySelector<HTMLElement>('.tracker')!);
+
+cameraViewToggle.addEventListener('click', () => {
+  const showCamera = preview.dataset.view !== 'camera';
+  preview.dataset.view = showCamera ? 'camera' : 'skeleton';
+  cameraViewToggle.textContent = showCamera ? 'Hide camera' : 'Show camera';
+  cameraViewToggle.setAttribute('aria-pressed', String(showCamera));
+});
 
 let tracker: HandLandmarker | undefined;
 let trackerLoading: Promise<HandLandmarker> | undefined;
@@ -355,6 +365,7 @@ const auth = new ApiAuthService(globalThis.fetch.bind(globalThis), window.localS
 void auth.restoreSession().then((user) => {
   if (!user) { window.location.replace(import.meta.env.BASE_URL); return; }
   document.querySelector('#current-user')!.textContent = user.login;
+  duel.setParticipants(user.login);
   document.querySelector<HTMLElement>('#game-screen')!.hidden = false;
   document.querySelector<HTMLElement>('#battle-session-status')!.hidden = true;
 }).catch(() => {
@@ -382,6 +393,7 @@ if (import.meta.env.DEV) {
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
+    spellbook.dispose();
     duel.dispose();
     diagnostics?.dispose();
     stopCamera();

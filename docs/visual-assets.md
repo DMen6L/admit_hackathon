@@ -131,9 +131,9 @@ web/public/assets/
 
 ## Relationship to the current prototype
 
-The current application recognizes hand-drawn triangle, circle, and lightning shapes. It emits spell events for Aegis Ward, Astral Veil, and Storm Lance, but it does not yet contain a duel scene, character state machine, combat simulation, sprite renderer, or VFX player.
+The current application recognizes triangle, circle, zigzag, hourglass, square, and straight-line runes. Its local practice duel maps them to Fireball, Shield, Lightning, Twin Flare, Time Lock, and Spark. The visual boards still provide the source artwork for the duel and its first three effects.
 
-The art boards introduce fireball, shield, lightning, dodge, and hit effects. The duel-screen mockup goes further by proposing triangle → Fireball, circle → Shield, `Z` → Lightning, and lateral leaning → Dodge. These concepts are not mapped one-to-one to the prototype's current spell bindings (`Aegis Ward`, `Astral Veil`, and `Storm Lance`). Treat the mockup mappings as design proposals until combat configuration explicitly adopts them; importing the boards does not change gesture recognition or gameplay behavior.
+The art boards introduce fireball, shield, lightning, dodge, and hit effects. The duel-screen mockup proposes triangle → Fireball, circle → Shield, `Z` → Lightning, and lateral leaning → Dodge. The first three rune mappings are active in the practice duel; leaning to dodge remains a design proposal. Twin Flare and Spark currently reuse scaled fireball and lightning effects, while Time Lock uses a procedural square marker.
 
 ## Generated game assets
 

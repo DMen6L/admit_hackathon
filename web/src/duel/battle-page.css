@@ -1,5 +1,5 @@
 .battle-page { background: radial-gradient(ellipse at 50% 0, #17253f 0, #080c15 65%); min-height: 100vh; }
-.battle-shell { width: min(1680px, 100%); padding: 24px 32px; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; align-items: start; }
+.battle-shell { width: min(1680px, 100%); padding: 24px 32px; display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 27vw, 440px); gap: 20px; align-items: start; }
 .battle-shell .game-header { grid-column: 1 / -1; align-items: center; margin: 0; padding-bottom: 20px; border-bottom: 1px solid #283753; }
 .battle-shell h1 { font-size: 1.7rem; color: #ffe099; letter-spacing: -.035em; }
 .battle-shell .game-header p:last-child { margin: 4px 0 0; font-size: .85rem; }
@@ -12,15 +12,31 @@
 .battle-shell .duel-hud { padding: 0 24px 24px; gap: 80px; }
 .battle-shell .duel-hud progress { height: 18px; }
 .battle-shell .duel-stage { border-block: 1px solid #293e5f; background-color: #071324; background-position: center; background-size: cover; }
-.battle-shell .duel-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 24px 24px 0; gap: 12px; }
-.battle-shell .duel-controls button { min-height: 58px; background: linear-gradient(#1c2940, #121d30); border-radius: 6px; font-weight: 650; }
-.battle-shell .duel-controls button:nth-child(2) { color: #91dfff; border-color: #356884; }
-.battle-shell .duel-controls button:nth-child(3) { color: #d3b6ff; border-color: #615085; }
-.battle-shell .duel-controls button:nth-child(n+4) { min-height: 38px; background: transparent; font-size: .75rem; font-weight: 400; }
+.battle-shell .duel-controls { justify-content: flex-end; padding: 16px 24px 0; }
+.battle-shell .duel-controls button { min-height: 38px; font-size: .8rem; }
 .battle-shell .duel-readiness { max-width: none; margin-inline: 24px; }
 .battle-shell .duel > p { margin-inline: 24px; }
-.battle-shell .tracker { grid-column: 2; grid-row: 2 / span 3; border-radius: 6px; background: #101927; }
-.tracking-title { font-size: .9rem; padding: 16px; margin: 0; color: #d9e5f6; }
+.battle-shell .tracker { grid-column: 2; grid-row: 2 / span 3; position: relative; z-index: 3; overflow: visible; border-radius: 6px; background: #101927; }
+.tracking-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 16px; }
+.tracking-title { font-size: 1rem; margin: 0; color: #d9e5f6; }
+.tracking-actions { display: flex; gap: 8px; }
+.tracking-heading button { min-height: 34px; padding: 5px 10px; font-size: .75rem; white-space: nowrap; }
+#spellbook-toggle { border-color: #bb9656; color: #ffe099; }
+#spellbook-count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 3px; border-radius: 50%; background: #42361f; font-size: .65rem; }
+.spellbook-panel { position: absolute; top: 60px; right: 12px; z-index: 5; width: min(390px, calc(100vw - 32px)); max-height: min(560px, 70vh); overflow-y: auto; border: 1px solid #9b8052; border-radius: 12px; padding: 18px; background: #101a2b; box-shadow: 0 24px 70px #000b; }
+.spellbook-panel__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.spellbook-panel__heading h3 { margin: 4px 0 0; color: #ffe099; font-size: 1.3rem; }
+.spellbook-panel__heading button { min-height: 32px; width: 32px; padding: 0; font-size: 1.4rem; line-height: 1; }
+.spellbook-panel__help { margin: 12px 0 16px; color: #c6d3e4; font-size: .82rem; }
+.spellbook-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.spellbook-list li { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; border: 1px solid #344663; border-radius: 8px; padding: 10px; background: #17243a; }
+.spellbook-list__glyph { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 8px; background: #293953; color: #ffe099; font-size: 1.8rem; line-height: 1; }
+.spellbook-list li > div { display: grid; gap: 2px; }
+.spellbook-list strong { color: #f5f7fc; font-size: .9rem; }
+.spellbook-list li > div > span { color: #bcd0e8; font-size: .8rem; }
+.spellbook-list small { color: #91a5bd; font-size: .73rem; }
+.battle-shell .preview[data-view="skeleton"] video { opacity: 0; }
+.battle-shell .preview[data-view="skeleton"] { background: radial-gradient(circle at center, #14243a, #050a11 72%); }
 .battle-shell .toolbar { display: block; padding: 14px; }
 .battle-shell .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .battle-shell .buttons button { padding: 8px; font-size: .8rem; }
@@ -30,8 +46,8 @@
 .battle-shell #status, .battle-shell .privacy { grid-column: 1; margin: 0; font-size: .8rem; }
 @media (max-width: 1000px) {
   .battle-shell { grid-template-columns: minmax(0, 1fr); padding: 16px; }
-  .battle-shell .tracker { grid-column: 1; grid-row: auto; display: grid; grid-template-columns: 200px 1fr; }
-  .tracking-title { grid-column: 1 / -1; }
+  .battle-shell .tracker { grid-column: 1; grid-row: auto; display: grid; grid-template-columns: minmax(280px, 48%) 1fr; }
+  .tracking-heading { grid-column: 1 / -1; }
   .battle-shell .cast-result { grid-column: 1 / -1; }
 }
 @media (max-width: 600px) {
@@ -41,5 +57,6 @@
   .battle-shell .duel-head span { font-size: .6rem; }
   .battle-shell .duel-hud { gap: 24px; padding: 0 12px 16px; }
   .battle-shell .duel-controls { padding: 16px 12px 0; gap: 8px; }
-  .battle-shell .tracker { grid-template-columns: 140px 1fr; }
+  .battle-shell .tracker { display: block; }
+  .spellbook-panel { position: fixed; top: auto; right: 12px; bottom: 12px; left: 12px; width: auto; max-height: min(600px, 75dvh); }
 }

@@ -167,7 +167,7 @@ describe('shape evaluator', () => {
     }
   });
 
-  it('does not confuse a broad rounded rectangle with a triangle', () => {
+  it('routes a broad rounded rectangle to the square family rather than triangle', () => {
     const roundedRectangle: PathPoint[] = [
       [.732, .027], [.74, .081], [.882, .335], [.989, .618], [.949, .745],
       [.648, .751], [.257, .731], [.037, .726], [.005, .583], [.012, .349],
@@ -175,7 +175,8 @@ describe('shape evaluator', () => {
     ].map(([x, y]) => ({ x, y }));
     expect(new ShapeEvaluator([triangle]).evaluate(roundedRectangle).status).not.toBe('matched');
     const fullEvaluation = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES).evaluate(roundedRectangle);
-    expect(fullEvaluation.status).not.toBe('matched');
+    expect(fullEvaluation.status).toBe('matched');
+    expect(fullEvaluation.templateId).toBe('square');
   });
 
   it('recognizes a circle using radial consistency', () => {
@@ -257,7 +258,7 @@ describe('shape evaluator', () => {
     expect(evaluation.status).not.toBe('matched');
   });
 
-  it('does not label an unsupported square as a triangle', () => {
+  it('recognizes a square without confusing it with a triangle', () => {
     const evaluator = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES);
     const square = [
       { x: 0.25, y: 0.25 },
@@ -268,10 +269,43 @@ describe('shape evaluator', () => {
     ];
     const evaluation = evaluator.evaluate(square);
 
-    expect(evaluation.status).toBe('unrecognized');
-    expect(evaluation.templateId).toBeUndefined();
-    expect(evaluation.templateName).toBeUndefined();
-    expect(evaluation.score).toBe(0);
+    expect(evaluation.status).toBe('matched');
+    expect(evaluation.templateId).toBe('square');
+  });
+
+  it.each(['hourglass', 'square', 'line'])('recognizes the new %s rune in the full spell set', (id) => {
+    const template = DEFAULT_SHAPE_TEMPLATES.find((shape) => shape.id === id)!;
+    const evaluation = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES).evaluate(
+      transform(template.points, 1.3, { x: 0.1, y: -0.2 }),
+    );
+    expect(evaluation.status).toBe('matched');
+    expect(evaluation.templateId).toBe(id);
+  });
+
+  it('recognizes a hand-drawn hourglass as one continuous rune', () => {
+    const stroke: PathPoint[] = [
+      { x: .49, y: .51 }, { x: .23, y: .19 }, { x: .51, y: .22 }, { x: .79, y: .2 },
+      { x: .52, y: .49 }, { x: .21, y: .78 }, { x: .5, y: .81 }, { x: .78, y: .8 }, { x: .49, y: .52 },
+    ];
+    const result = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES).evaluate(stroke);
+    expect(result.status).toBe('matched');
+    expect(result.templateId).toBe('hourglass');
+  });
+
+  it('accepts a rectangular rune but rejects a tiny straight movement as Spark', () => {
+    const evaluator = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES);
+    const rectangle = [
+      { x: .2, y: .3 }, { x: .8, y: .3 }, { x: .8, y: .7 }, { x: .2, y: .7 }, { x: .2, y: .3 },
+    ];
+    expect(evaluator.evaluate(rectangle).templateId).toBe('square');
+    const tinyLine = [
+      { x: .5, y: .5 }, { x: .52, y: .5 }, { x: .54, y: .5 }, { x: .56, y: .5 },
+    ];
+    expect(evaluator.evaluate(tinyLine).status).not.toBe('matched');
+    const longLine = [
+      { x: .2, y: .5 }, { x: .4, y: .505 }, { x: .6, y: .495 }, { x: .8, y: .5 },
+    ];
+    expect(evaluator.evaluate(longLine).templateId).toBe('line');
   });
 
   it('supports templates that explicitly allow rotation', () => {

@@ -15,13 +15,13 @@
       </header>
 
       <section id="duel" class="duel" aria-label="Practice duel">
-        <div class="duel-head"><span>BERIK · ARCANE WARDEN</span><b>VS</b><span>ALISHER · EMBER SHADE</span></div>
+        <div class="duel-head"><span><strong data-player-name="0">Player</strong> · ARCANE WARDEN</span><b>VS</b><span><strong data-player-name="1">Computer (AI)</strong> · EMBER SHADE</span></div>
         <div class="duel-hud">
-          <div><label for="berik-health">Berik <span data-health-label="0">100 / 100</span></label><progress id="berik-health" data-health="0" max="100" value="100"></progress></div>
-          <div><label for="alisher-health">Alisher <span data-health-label="1">100 / 100</span></label><progress id="alisher-health" data-health="1" max="100" value="100"></progress></div>
+          <div><label for="berik-health"><span data-player-name="0">Player</span><span data-health-label="0">100 / 100</span></label><progress id="berik-health" data-health="0" max="100" value="100"></progress></div>
+          <div><label for="alisher-health"><span data-player-name="1">Computer (AI)</span><span data-health-label="1">100 / 100</span></label><progress id="alisher-health" data-health="1" max="100" value="100"></progress></div>
         </div>
         <div class="duel-stage">
-          <canvas width="1460" height="476" aria-label="Berik and Alisher casting spells in the arena">Use the controls below to practice casting spells.</canvas>
+          <canvas width="1460" height="476" aria-label="Player and opponent casting spells in the arena">Use your hand to cast spells.</canvas>
           <div class="enemy-telegraph" data-threat hidden>
             <span class="enemy-telegraph__rune" data-threat-rune aria-hidden="true"></span>
             <div class="enemy-telegraph__copy">
@@ -33,18 +33,23 @@
           <div class="duel-overlay" data-overlay hidden><strong data-overlay-title></strong><span data-overlay-detail></span></div>
         </div>
         <div class="duel-controls">
-          <button type="button" data-spell="fireball">△ Fireball</button><button type="button" data-spell="shield">○ Shield</button><button type="button" data-spell="lightning">ϟ Lightning</button>
-          <button type="button" data-spell="fireball" data-side="1">Opponent fireball</button><button type="button" data-spell="lightning" data-side="1">Opponent lightning</button><button type="button" data-pause aria-pressed="false">Pause</button><button type="button" data-reset>Restart duel</button>
+          <button type="button" data-pause aria-pressed="false">Pause</button><button type="button" data-reset>Restart duel</button>
         </div>
         <div class="duel-readiness"><label for="cast-readiness">Your next cast <span data-ready-label>Ready</span></label><progress id="cast-readiness" max="900" value="900" data-readiness></progress></div>
         <p data-duel-status role="status" aria-live="polite">Preparing the arena…</p>
         <p data-load-error hidden>Artwork could not load. <a href="./battle.html">Reload and try again</a></p>
         
-        <p>Watch Alisher's rune. When he charges a triangle or lightning bolt, draw a circle and open your palm to raise a shield before impact. Use the buttons to practice without a camera.</p>
+        <p>Watch your opponent's charge. Draw a circle to shield, or use Time Lock to reveal and delay their spell.</p>
       </section>
 
       <section class="tracker" aria-label="Hand tracking preview">
-        <h2 class="tracking-title">Your spellcasting hand</h2><div class="preview">
+        <div class="tracking-heading"><h2 class="tracking-title">Your spellcasting hand</h2><div class="tracking-actions"><button id="spellbook-toggle" type="button" aria-controls="spellbook-panel" aria-expanded="false">Spells <span id="spellbook-count"></span></button><button id="camera-view-toggle" type="button" aria-pressed="false">Show camera</button></div></div>
+        <aside id="spellbook-panel" class="spellbook-panel" aria-labelledby="spellbook-title" tabindex="-1" hidden>
+          <div class="spellbook-panel__heading"><div><p class="eyebrow">Casting guide</p><h3 id="spellbook-title">Spellbook</h3></div><button id="spellbook-close" type="button" aria-label="Close spellbook">×</button></div>
+          <p class="spellbook-panel__help">Raise your index finger to draw. Open your palm to cast.</p>
+          <ul id="spellbook-list" class="spellbook-list"></ul>
+        </aside>
+        <div class="preview" data-view="skeleton">
           <video id="camera" autoplay muted playsinline aria-label="Mirrored webcam view"></video>
           <canvas id="path" aria-hidden="true"></canvas>
           <canvas id="landmarks" aria-hidden="true"></canvas>

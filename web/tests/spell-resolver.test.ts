@@ -58,8 +58,11 @@ describe('spell resolver', () => {
     const definition = spellDefinitionFor(DEFAULT_SPELL_BINDINGS.triangle);
 
     expect(definition).toEqual(DEFAULT_SPELL_DEFINITIONS[0]);
-    expect(definition?.name).toBe('Aegis Ward');
-    expect(definition?.runeInterpretation).toContain('protective');
+    expect(definition?.name).toBe('Fireball');
+    expect(definition?.runeInterpretation).toContain('attack');
+    expect(DEFAULT_SPELL_BINDINGS.hourglass).toBe('rune.hourglass');
+    expect(DEFAULT_SPELL_BINDINGS.square).toBe('rune.square');
+    expect(DEFAULT_SPELL_BINDINGS.line).toBe('rune.line');
     expect(spellDefinitionFor('spell.unknown')).toBeUndefined();
   });
 

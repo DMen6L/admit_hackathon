@@ -21,6 +21,7 @@ export interface ShapeTemplate {
   allowReflection?: boolean;
   allowReverse?: boolean;
   aspectRatio?: { min: number; max: number };
+  minimumSpan?: number;
 }
 
 export interface ShapeDiagnostics {
@@ -462,7 +463,7 @@ function aspectError(attempt: ShapeFeatures, template: ShapeTemplate, templateFe
   return clamp(Math.abs(Math.log(Math.max(attempt.aspectRatio, 0.1) / Math.max(templateFeatures.aspectRatio, 0.1))) / Math.log(2));
 }
 
-function scoreCandidate(attempt: ShapeFeatures, template: ShapeTemplate, templateFeatures: ShapeFeatures): Candidate {
+function scoreCandidate(attempt: ShapeFeatures, template: ShapeTemplate, templateFeatures: ShapeFeatures, strokeSpan: number): Candidate {
   const topology = topologyFor(template);
   const closure = closureFor(template);
   const geometry = geometryFor(template);
@@ -554,17 +555,18 @@ function scoreCandidate(attempt: ShapeFeatures, template: ShapeTemplate, templat
       ? (outlineError <= POLYGON_MATCH_OUTLINE_ERROR || flexibleTriangle)
         && attempt.closureError <= POLYGON_MATCH_CLOSURE_ERROR
       : outlineError <= 0.26;
-  const evidence = geometryEvidence && matchFit;
+  const sizeCompatible = strokeSpan >= (template.minimumSpan ?? 0);
+  const evidence = geometryEvidence && matchFit && sizeCompatible;
   return {
     template,
     features: templateFeatures,
     score,
     diagnostics,
     evidence,
-    nearEvidence: geometry === 'circle'
+    nearEvidence: sizeCompatible && (geometry === 'circle'
       ? closureCompatible && attempt.coverageError <= 0.35
         && attempt.radialError <= 0.55 && attempt.corners >= 5
-      : geometryEvidence,
+      : geometryEvidence),
     closureAmbiguous: attempt.closureAmbiguous,
     straightRunFraction: attempt.straightRunFraction,
     triangleFit,
@@ -620,10 +622,14 @@ export class ShapeEvaluator {
 
     const aspectRatio = 'points' in stroke ? stroke.aspectRatio ?? 1 : 1;
     const corrected = cleaned.map((point) => ({ x: point.x * aspectRatio, y: point.y }));
+    const strokeSpan = Math.hypot(
+      Math.max(...corrected.map((point) => point.x)) - Math.min(...corrected.map((point) => point.x)),
+      Math.max(...corrected.map((point) => point.y)) - Math.min(...corrected.map((point) => point.y)),
+    );
     const attempt = extractFeatures(corrected);
     const candidates = this.templates.map((template) => {
       const templateFeatures = extractFeatures(deduplicate(template.points));
-      return scoreCandidate(attempt, template, templateFeatures);
+      return scoreCandidate(attempt, template, templateFeatures, strokeSpan);
     }).sort((a, b) => b.score - a.score);
     const summaries = candidates.map((candidate) => {
       const { template, diagnostics } = candidate;
@@ -746,6 +752,61 @@ export const DEFAULT_SHAPE_TEMPLATES: ShapeTemplate[] = [
       { x: 0.4, y: 0.25 },
       { x: 0.6, y: 0.7 },
       { x: 0.8, y: 0.25 },
+    ],
+  },
+  {
+    id: 'hourglass',
+    name: 'Twin triangle rune',
+    geometry: 'polygon',
+    topology: 'closed',
+    expectedCorners: 6,
+    cornerTolerance: 2,
+    closure: 'preferred',
+    allowRotation: true,
+    points: [
+      { x: 0.5, y: 0.5 },
+      { x: 0.2, y: 0.2 },
+      { x: 0.8, y: 0.2 },
+      { x: 0.5, y: 0.5 },
+      { x: 0.2, y: 0.8 },
+      { x: 0.8, y: 0.8 },
+      { x: 0.5, y: 0.5 },
+    ],
+  },
+  {
+    id: 'square',
+    name: 'Square rune',
+    geometry: 'polygon',
+    topology: 'closed',
+    expectedCorners: 4,
+    cornerTolerance: 1,
+    closure: 'required',
+    allowRotation: true,
+    points: [
+      { x: 0.2, y: 0.2 },
+      { x: 0.8, y: 0.2 },
+      { x: 0.8, y: 0.8 },
+      { x: 0.2, y: 0.8 },
+      { x: 0.2, y: 0.2 },
+    ],
+  },
+  {
+    id: 'line',
+    name: 'Line rune',
+    geometry: 'polyline',
+    topology: 'open',
+    expectedCorners: 0,
+    cornerTolerance: 0,
+    closure: 'ignored',
+    direction: 'any',
+    allowRotation: true,
+    allowReverse: true,
+    minimumSpan: 0.2,
+    points: [
+      { x: 0.2, y: 0.5 },
+      { x: 0.4, y: 0.5 },
+      { x: 0.6, y: 0.5 },
+      { x: 0.8, y: 0.5 },
     ],
   },
 ];
