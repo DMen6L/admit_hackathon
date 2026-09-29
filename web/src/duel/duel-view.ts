@@ -1,5 +1,5 @@
 import { sampleAnimation, type AssetManifest, type EffectClip } from '../assets/animation';
-import { DemoDuel, demoSpell, type Side, type Spell } from './demo-duel';
+import { CAST_COOLDOWN_MS, ENEMY_WINDUP_MS, DemoDuel, demoSpell, type Side, type Spell } from './demo-duel';
 import type { SpellCastPayload } from '../spells/spell-resolver';
 import './duel.css';
 
@@ -19,10 +19,17 @@ export function mountDuel(root: HTMLElement): { reset(): void; dispose(): void }
   let previous = performance.now();
   let disposed = false;
   let paused = false;
+  let nextEnemyCastAt = 3500;
+  let enemyCastIndex = 0;
   const pauseButton = root.querySelector<HTMLButtonElement>('[data-pause]')!;
   const readiness = root.querySelector<HTMLProgressElement>('[data-readiness]')!;
   const readyLabel = root.querySelector<HTMLElement>('[data-ready-label]')!;
   const overlay = root.querySelector<HTMLElement>('[data-overlay]')!;
+  const threat = root.querySelector<HTMLElement>('[data-threat]')!;
+  const threatRune = root.querySelector<HTMLElement>('[data-threat-rune]')!;
+  const threatLabel = root.querySelector<HTMLElement>('[data-threat-label]')!;
+  const threatPhase = root.querySelector<HTMLElement>('[data-threat-phase]')!;
+  const threatProgress = root.querySelector<HTMLProgressElement>('[data-threat-progress]')!;
   const visible = () => !document.hidden && root.getClientRects().length > 0;
   const announce = () => {
     if (status.textContent !== model.message) status.textContent = model.message;
@@ -30,14 +37,28 @@ export function mountDuel(root: HTMLElement): { reset(): void; dispose(): void }
       root.querySelector<HTMLProgressElement>(`[data-health="${index}"]`)!.value = fighter.health;
       root.querySelector<HTMLElement>(`[data-health-label="${index}"]`)!.textContent = `${fighter.health} / 100`;
     });
-    const ready = Math.min(900, Math.max(0, clock - model.fighters[0].castAt));
+    const ready = Math.min(CAST_COOLDOWN_MS, Math.max(0, clock - model.fighters[0].castAt));
     readiness.value = ready;
-    const label = model.winner !== undefined ? 'Duel finished' : paused ? 'Paused' : ready === 900 ? 'Ready' : 'Recovering…';
+    const incoming = model.attacks.find((attack) => attack.side === 1 && attack.impactAt > clock);
+    const label = model.winner !== undefined ? 'Duel finished' : paused ? 'Paused'
+      : incoming && model.canCast(0, 'shield', clock) ? 'Shield ready' : ready === CAST_COOLDOWN_MS ? 'Ready' : 'Recovering…';
     if (readyLabel.textContent !== label) readyLabel.textContent = label;
     buttons.forEach((button) => {
       const side = button.dataset.side === '1' ? 1 : 0;
-      button.disabled = !manifest || (button.hasAttribute('data-spell') && (paused || model.winner !== undefined || clock - model.fighters[side].castAt < 900));
+      button.disabled = !manifest || (button.hasAttribute('data-spell') &&
+        (paused || !model.canCast(side, button.dataset.spell as Spell, clock)));
     });
+    threat.hidden = !incoming;
+    if (incoming) {
+      const charging = clock < incoming.releaseAt;
+      threat.dataset.spell = incoming.spell;
+      threat.classList.toggle('is-incoming', !charging);
+      threatRune.textContent = incoming.spell === 'fireball' ? '△' : 'ϟ';
+      threatLabel.textContent = `Alisher: ${incoming.spell}`;
+      threatPhase.textContent = charging ? 'Charging — draw a circle to shield!' : 'Incoming — shield now!';
+      threatProgress.max = ENEMY_WINDUP_MS;
+      threatProgress.value = charging ? Math.min(ENEMY_WINDUP_MS, clock - incoming.startedAt) : ENEMY_WINDUP_MS;
+    }
     pauseButton.disabled = !manifest || model.winner !== undefined;
     pauseButton.textContent = paused ? 'Resume' : 'Pause';
     pauseButton.setAttribute('aria-pressed', String(paused));
@@ -52,13 +73,15 @@ export function mountDuel(root: HTMLElement): { reset(): void; dispose(): void }
     const clip = manifest.clips.find((value) => value.character === (side === 0 ? 'berik' : 'alisher') && value.state === 'cast')!;
     const eventFrame = clip.events.find((event) => event.name === 'projectile-release')!.frame;
     const delay = clip.frames.slice(0, eventFrame).reduce((sum, frame) => sum + frame.durationMs, 0);
-    if (!model.cast(side, spell, clock, delay) && model.winner === undefined) model.message = 'Finish the current cast before casting again.';
+    if (model.cast(side, spell, clock, delay)) {
+      if (side === 1) nextEnemyCastAt = clock + ENEMY_WINDUP_MS + 800 + 3200;
+    } else if (model.winner === undefined) model.message = 'Finish the current cast before casting again.';
     announce();
   };
   buttons.forEach((button) => {
     button.disabled = true;
     button.addEventListener('click', () => {
-      if (button.hasAttribute('data-reset')) { model.reset(); paused = false; announce(); }
+      if (button.hasAttribute('data-reset')) { model.reset(); clock = 0; nextEnemyCastAt = 3500; enemyCastIndex = 0; paused = false; announce(); }
       else if (button.hasAttribute('data-pause')) { paused = !paused; announce(); }
       else cast(button.dataset.side === '1' ? 1 : 0, button.dataset.spell as Spell);
     }, { signal: abort.signal });
@@ -84,13 +107,35 @@ export function mountDuel(root: HTMLElement): { reset(): void; dispose(): void }
       const fighter = model.fighters[side];
       const character = side === 0 ? 'berik' : 'alisher';
       const castClip = manifest!.clips.find((value) => value.character === character && value.state === 'cast')!;
-      const age = clock - fighter.castAt;
-      const clip = !sampleAnimation(castClip, age).finished && Number.isFinite(age)
+      const enemyAttack = side === 1 ? model.attacks.find((attack) => attack.side === 1 && attack.releaseAt > clock) : undefined;
+      const castDuration = castClip.frames.reduce((sum, frame) => sum + frame.durationMs, 0);
+      const age = enemyAttack ? clock - (enemyAttack.releaseAt - castDuration) : clock - fighter.castAt;
+      const clip = age >= 0 && !sampleAnimation(castClip, age).finished && Number.isFinite(age)
         ? castClip : manifest!.clips.find((value) => value.character === character && value.state === 'idle')!;
       const sample = sampleAnimation(clip, clip.state === 'idle' ? clock : age);
       const x = side === 0 ? 320 : 1140;
       sprite(clip.frames[sample.frame].path, x, 436, clip.width, clip.height, clip.pivot, 3, side === 1);
-      if (fighter.shieldUntil > clock) effect('shield', age, x, 330, false, 4);
+      if (fighter.shieldUntil > clock) effect('shield', clock - fighter.shieldAt, x, 330, false, 4);
+    }
+    const chargingAttack = model.attacks.find((attack) => attack.side === 1 && clock < attack.releaseAt);
+    if (chargingAttack) {
+      const charge = (clock - chargingAttack.startedAt) / (chargingAttack.releaseAt - chargingAttack.startedAt);
+      const color = chargingAttack.spell === 'fireball' ? '#ffba74' : '#d6baff';
+      ctx.save();
+      ctx.globalAlpha = .65 + .35 * Math.sin(clock / 130) ** 2;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 18 + charge * 24;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(1140, 128, 48 + charge * 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.font = 'bold 82px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(chargingAttack.spell === 'fireball' ? '△' : 'ϟ', 1140, 127);
+      ctx.restore();
     }
     for (const attack of model.attacks) {
       if (clock < attack.releaseAt) continue;
@@ -108,7 +153,13 @@ export function mountDuel(root: HTMLElement): { reset(): void; dispose(): void }
   };
   const tick = (now: number) => {
     if (visible()) {
-      if (!paused) { clock += Math.min(now - previous, 100); model.update(clock); }
+      if (!paused) {
+        clock += Math.min(now - previous, 100);
+        model.update(clock);
+        if (manifest && model.winner === undefined && clock >= nextEnemyCastAt && model.canCast(1, 'fireball', clock)) {
+          cast(1, enemyCastIndex++ % 2 === 0 ? 'fireball' : 'lightning');
+        }
+      }
       draw(); announce();
     }
     previous = now;
@@ -136,7 +187,7 @@ export function mountDuel(root: HTMLElement): { reset(): void; dispose(): void }
     }
   });
   return {
-    reset() { model.reset(); clock = 0; paused = false; announce(); },
+    reset() { model.reset(); clock = 0; nextEnemyCastAt = 3500; enemyCastIndex = 0; paused = false; announce(); },
     dispose() { disposed = true; abort.abort(); cancelAnimationFrame(frameId); },
   };
 }

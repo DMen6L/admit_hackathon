@@ -22,17 +22,25 @@
         </div>
         <div class="duel-stage">
           <canvas width="1460" height="476" aria-label="Berik and Alisher casting spells in the arena">Use the controls below to practice casting spells.</canvas>
+          <div class="enemy-telegraph" data-threat hidden>
+            <span class="enemy-telegraph__rune" data-threat-rune aria-hidden="true"></span>
+            <div class="enemy-telegraph__copy">
+              <strong data-threat-label></strong>
+              <span data-threat-phase></span>
+              <progress data-threat-progress max="2200" value="0" aria-label="Enemy spell charge"></progress>
+            </div>
+          </div>
           <div class="duel-overlay" data-overlay hidden><strong data-overlay-title></strong><span data-overlay-detail></span></div>
         </div>
         <div class="duel-controls">
           <button type="button" data-spell="fireball">△ Fireball</button><button type="button" data-spell="shield">○ Shield</button><button type="button" data-spell="lightning">ϟ Lightning</button>
-          <button type="button" data-spell="fireball" data-side="1">Opponent attack</button><button type="button" data-pause aria-pressed="false">Pause</button><button type="button" data-reset>Restart duel</button>
+          <button type="button" data-spell="fireball" data-side="1">Opponent fireball</button><button type="button" data-spell="lightning" data-side="1">Opponent lightning</button><button type="button" data-pause aria-pressed="false">Pause</button><button type="button" data-reset>Restart duel</button>
         </div>
         <div class="duel-readiness"><label for="cast-readiness">Your next cast <span data-ready-label>Ready</span></label><progress id="cast-readiness" max="900" value="900" data-readiness></progress></div>
         <p data-duel-status role="status" aria-live="polite">Preparing the arena…</p>
         <p data-load-error hidden>Artwork could not load. <a href="./battle.html">Reload and try again</a></p>
         
-        <p>Draw a triangle for a fireball, a circle for a shield, or a zigzag for lightning. Open your palm to release. You can also practice with the buttons.</p>
+        <p>Watch Alisher's rune. When he charges a triangle or lightning bolt, draw a circle and open your palm to raise a shield before impact. Use the buttons to practice without a camera.</p>
       </section>
 
       <section class="tracker" aria-label="Hand tracking preview">

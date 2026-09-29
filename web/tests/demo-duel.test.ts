@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DemoDuel, demoSpell } from '../src/duel/demo-duel';
+import { DemoDuel, ENEMY_WINDUP_MS, demoSpell } from '../src/duel/demo-duel';
 
 describe('local practice duel', () => {
   it('damages only on impact and resolves each projectile once', () => {
@@ -19,6 +19,32 @@ describe('local practice duel', () => {
     duel.update(4000);
     expect(duel.fighters[1].health).toBe(100);
     expect(duel.fighters[1].shieldUntil).toBe(0);
+  });
+  it.each(['fireball', 'lightning'] as const)('telegraphs enemy %s long enough to react', (spell) => {
+    const duel = new DemoDuel();
+    expect(duel.cast(1, spell, 100, 100)).toBe(true);
+    const attack = duel.attacks[0];
+    expect(attack.releaseAt - attack.startedAt).toBe(ENEMY_WINDUP_MS);
+    expect(duel.cast(1, spell, 1000)).toBe(false);
+    duel.update(attack.releaseAt - 1);
+    expect(duel.fighters[0].health).toBe(100);
+    expect(duel.message).toContain('charging');
+    duel.update(attack.releaseAt);
+    expect(duel.message).toContain('released');
+    expect(duel.cast(0, 'shield', attack.releaseAt + 100)).toBe(true);
+    duel.update(attack.impactAt);
+    expect(duel.fighters[0].health).toBe(100);
+    expect(duel.fighters[0].shieldUntil).toBe(0);
+  });
+  it('allows one defensive shield while an attack spell is cooling down', () => {
+    const duel = new DemoDuel();
+    duel.cast(0, 'fireball', 1000);
+    duel.cast(1, 'lightning', 1100);
+    expect(duel.canCast(0, 'shield', 1200)).toBe(true);
+    expect(duel.cast(0, 'shield', 1200)).toBe(true);
+    expect(duel.cast(0, 'shield', 1300)).toBe(false);
+    duel.update(3800);
+    expect(duel.fighters[0].health).toBe(100);
   });
   it('does not block attacks after shield expiration', () => {
     const duel = new DemoDuel();

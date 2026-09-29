@@ -261,16 +261,16 @@ arena with a compact camera panel, stacking the camera underneath on small scree
 Artwork loading times out after 15 seconds and offers a reload link on failure.
 
 After API-backed sign-in, the courtyard renders both wizards with live health bars.
-Use Fireball, Shield, Lightning, or Opponent attack to test it without a camera.
+Use Fireball, Shield, Lightning, or the opponent spell buttons to test it without a camera.
 Webcam `spell-cast` events also trigger Berik's visuals: `rune.triangle` → Fireball,
 `rune.circle` → Shield, `rune.lightning` → Lightning. This is a demo presentation
 mapping; the existing spell payloads and recognition names are unchanged.
 
 `src/duel/demo-duel.ts` contains isolated local demo rules (100 health, 20 fireball
-damage, 15 lightning damage, 900 ms cast cooldown, three-second one-hit shield).
+damage, 15 lightning damage, 900 ms cast cooldown, 3.5-second one-hit shield).
 `duel-view.ts` loads assets and renders these rules. A backend integration should
-replace the local model with authoritative server state. The opponent attacks only
-when its demo button is pressed. Logout resets the duel; hidden pages pause it.
+replace the local model with authoritative server state. The opponent attacks after
+a short opening delay and then alternates fireball and lightning. Its visible rune charges for 2.2 seconds before release, giving the player time to draw and release a shield. A defensive shield can bypass an offensive cooldown during an incoming attack. The opponent spell buttons trigger extra practice attacks. Logout resets the duel; hidden pages pause it.
 The practice duel ends at zero health and offers Restart duel.
 
 Pause freezes the duel clock, projectiles, shields, and cooldowns; webcam spell
