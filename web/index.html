@@ -25,7 +25,10 @@
             <button id="start" type="button">Start camera</button>
             <button id="stop" type="button" disabled>Stop camera</button>
           </div>
-          <span id="hand-count">0 hands detected</span>
+          <div class="readouts" aria-live="polite">
+            <span id="hand-count">0 hands detected</span>
+            <span id="casting-status">Casting: waiting for a hand</span>
+          </div>
         </div>
       </section>
 

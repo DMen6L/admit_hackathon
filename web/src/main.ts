@@ -1,7 +1,7 @@
 import './style.css';
 import { DrawingUtils, HandLandmarker } from '@mediapipe/tasks-vision';
 import { createHandTracker } from './vision/hand-tracker';
-import { processHands } from './input/process-hands';
+import { processHands, resetHandProcessing } from './input/process-hands';
 
 const video = document.querySelector<HTMLVideoElement>('#camera')!;
 const canvas = document.querySelector<HTMLCanvasElement>('#landmarks')!;
@@ -11,6 +11,7 @@ const startButton = document.querySelector<HTMLButtonElement>('#start')!;
 const stopButton = document.querySelector<HTMLButtonElement>('#stop')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
 const handCount = document.querySelector<HTMLSpanElement>('#hand-count')!;
+const castingStatus = document.querySelector<HTMLSpanElement>('#casting-status')!;
 const placeholder = document.querySelector<HTMLParagraphElement>('#placeholder')!;
 const preview = document.querySelector<HTMLDivElement>('.preview')!;
 
@@ -34,12 +35,36 @@ function stopCamera(message = 'Camera stopped. You can start again.'): void {
   video.pause();
   video.srcObject = null;
   previousVideoTime = -1;
+  resetHandProcessing();
   context.clearRect(0, 0, canvas.width, canvas.height);
   placeholder.hidden = false;
   handCount.textContent = '0 hands detected';
+  castingStatus.textContent = 'Casting: waiting for a hand';
+  delete castingStatus.dataset.active;
   startButton.disabled = false;
   stopButton.disabled = true;
   setStatus(message);
+}
+
+function drawCastingIndicator(landmarks: Array<{ x: number; y: number }>): void {
+  const indexMcp = landmarks[5];
+  const indexTip = landmarks[8];
+  if (!indexMcp || !indexTip) return;
+
+  context.save();
+  context.strokeStyle = '#ffd166';
+  context.fillStyle = '#ffd166';
+  context.lineWidth = 5;
+  context.beginPath();
+  context.moveTo(indexMcp.x * canvas.width, indexMcp.y * canvas.height);
+  context.lineTo(indexTip.x * canvas.width, indexTip.y * canvas.height);
+  context.stroke();
+  for (const point of [indexMcp, indexTip]) {
+    context.beginPath();
+    context.arc(point.x * canvas.width, point.y * canvas.height, 8, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.restore();
 }
 
 function cameraError(error: unknown): string {
@@ -74,22 +99,41 @@ function trackFrame(activeSession: number): void {
       const results = tracker.detectForVideo(video, timestampMs);
       context.clearRect(0, 0, canvas.width, canvas.height);
 
-      for (const landmarks of results.landmarks) {
+      const processedHands = processHands(results, timestampMs);
+      for (const [handIndex, landmarks] of results.landmarks.entries()) {
+        const casting = processedHands.hands[handIndex];
         drawing.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, {
-          color: '#85e3c7', lineWidth: 3,
+          color: casting?.isCasting ? '#ffd166' : '#85e3c7', lineWidth: 3,
         });
         drawing.drawLandmarks(landmarks, {
-          color: '#ffffff', fillColor: '#85e3c7', radius: 4, lineWidth: 1,
+          color: '#ffffff', fillColor: casting?.isCasting ? '#ffd166' : '#85e3c7', radius: 4, lineWidth: 1,
         });
+        if (casting?.isCasting) drawCastingIndicator(landmarks);
       }
 
       const count = results.landmarks.length;
       handCount.textContent = `${count} ${count === 1 ? 'hand' : 'hands'} detected`;
+      const castingHands = processedHands.hands.filter((hand) => hand.isCasting);
+      const startedHands = processedHands.hands.filter((hand) => hand.justStarted);
+      if (startedHands.length > 0) {
+        const labels = startedHands.map((hand) => hand.label).join(' + ');
+        castingStatus.textContent = `Casting started · ${labels}`;
+        castingStatus.dataset.active = 'true';
+      } else if (castingHands.length > 0) {
+        const labels = castingHands.map((hand) => hand.label).join(' + ');
+        castingStatus.textContent = `Casting active · ${labels}`;
+        castingStatus.dataset.active = 'true';
+      } else {
+        const correction = processedHands.hands.find((hand) => hand.correction)?.correction;
+        castingStatus.textContent = count > 0
+          ? `Casting: ${correction ?? 'raise your index finger and curl the others'}`
+          : 'Casting: waiting for a hand';
+        delete castingStatus.dataset.active;
+      }
       const message = count > 0
         ? 'Tracking your hands. Move your fingers and watch the landmarks follow.'
         : 'Camera is running. Hold your hands fully in view with enough light.';
       if (status.textContent !== message) setStatus(message);
-      processHands(results, timestampMs);
     }
     frameId = requestAnimationFrame(() => trackFrame(activeSession));
   } catch (error) {

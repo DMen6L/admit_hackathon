@@ -22,11 +22,14 @@ canvas { pointer-events: none; }
 #placeholder[hidden] { display: none; }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 18px; }
 .buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.readouts { display: grid; gap: 4px; justify-items: end; text-align: right; }
 button { min-height: 44px; border: 1px solid #506174; border-radius: 8px; padding: 10px 18px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
 #start { background: #85e3c7; color: #10151d; border-color: #85e3c7; font-weight: 650; }
 button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 button:disabled { opacity: 0.45; cursor: default; }
 #hand-count { font-variant-numeric: tabular-nums; }
+#casting-status { color: #aab7c8; font-size: 0.9rem; }
+#casting-status[data-active="true"] { color: #ffd166; font-weight: 650; }
 #status { min-height: 1.6em; margin-bottom: 0; }
 #status[data-error="true"] { color: #ffb6b6; }
 .privacy { font-size: 0.85rem; margin-top: 6px; }
