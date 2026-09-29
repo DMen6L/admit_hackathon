@@ -11,7 +11,7 @@
       <header>
         <p class="eyebrow">Magic game / first experiment</p>
         <h1>Your hands are the controller.</h1>
-        <p>Start your camera and hold one or both hands in view.</p>
+        <p>Raise an index finger to draw, then open your palm to release the spell.</p>
       </header>
 
       <section class="tracker" aria-label="Hand tracking preview">
@@ -31,6 +31,14 @@
             <span id="casting-status">Casting: waiting for a hand</span>
           </div>
         </div>
+        <aside id="cast-result" class="cast-result" hidden role="status" aria-live="assertive">
+          <span id="cast-result-icon" class="cast-result__icon" aria-hidden="true"></span>
+          <div>
+            <strong id="cast-result-title"></strong>
+            <p id="cast-result-detail"></p>
+            <p id="cast-result-correction" class="cast-result__correction" hidden></p>
+          </div>
+        </aside>
       </section>
 
       <p id="status" role="status" aria-live="polite">Ready when you are.</p>

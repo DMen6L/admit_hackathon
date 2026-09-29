@@ -11,7 +11,7 @@ interface Point {
   z: number;
 }
 
-function makeHand(kind: 'raised' | 'open' | 'bent'): Point[] {
+function makeHand(kind: 'raised' | 'open' | 'bent' | 'side-open'): Point[] {
   const points = Array.from({ length: 21 }, () => ({ x: 0.5, y: 0.5, z: 0 }));
   points[0] = { x: 0.5, y: 0.7, z: 0 };
   points[1] = { x: 0.44, y: 0.68, z: 0 };
@@ -31,7 +31,11 @@ function makeHand(kind: 'raised' | 'open' | 'bent'): Point[] {
     : { x: 0.42, y: 0.15, z: 0 };
 
   // The remaining fingertips are either curled into the palm or extended.
-  if (kind === 'open') {
+  if (kind === 'open' || kind === 'side-open') {
+    points[1] = { x: 0.38, y: 0.62, z: 0 };
+    points[2] = { x: 0.32, y: 0.58, z: 0 };
+    points[3] = { x: 0.29, y: 0.56, z: 0 };
+    points[4] = { x: 0.25, y: 0.54, z: 0 };
     points[9] = { x: 0.50, y: 0.55, z: 0 };
     points[10] = { x: 0.51, y: 0.40, z: 0 };
     points[11] = { x: 0.52, y: 0.25, z: 0 };
@@ -44,6 +48,10 @@ function makeHand(kind: 'raised' | 'open' | 'bent'): Point[] {
     points[18] = { x: 0.70, y: 0.48, z: 0 };
     points[19] = { x: 0.75, y: 0.35, z: 0 };
     points[20] = { x: 0.78, y: 0.23, z: 0 };
+    if (kind === 'side-open') {
+      points[5].z = 0.25;
+      points[17].z = -0.25;
+    }
   } else {
     points[9] = { x: 0.50, y: 0.55, z: 0 };
     points[10] = { x: 0.51, y: 0.63, z: 0 };
@@ -61,7 +69,7 @@ function makeHand(kind: 'raised' | 'open' | 'bent'): Point[] {
   return points;
 }
 
-function resultFor(...hands: Array<{ label: string; kind: 'raised' | 'open' | 'bent' }>): HandLandmarkerResult {
+function resultFor(...hands: Array<{ label: string; kind: 'raised' | 'open' | 'bent' | 'side-open' }>): HandLandmarkerResult {
   return {
     landmarks: hands.map(({ kind }) => makeHand(kind)),
     worldLandmarks: hands.map(({ kind }) => makeHand(kind)),
@@ -108,7 +116,7 @@ describe('raised-index casting recognition', () => {
     expect(bent.correction).toContain('Raise');
   });
 
-  it('ends casting after two release frames', () => {
+  it('enters pending release after the raised index ends', () => {
     const raised = resultFor({ label: 'Right', kind: 'raised' });
     const bent = resultFor({ label: 'Right', kind: 'bent' });
     for (let frame = 0; frame < 4; frame += 1) processHands(raised, frame * 33);
@@ -120,6 +128,55 @@ describe('raised-index casting recognition', () => {
     expect(firstRelease.justEnded).toBe(false);
     expect(ended.isCasting).toBe(false);
     expect(ended.justEnded).toBe(true);
+    expect(ended.phase).toBe('awaiting-release');
+    expect(ended.justReleased).toBe(false);
+  });
+
+  it('requires a stable open palm before releasing the spell', () => {
+    const raised = resultFor({ label: 'Right', kind: 'raised' });
+    const bent = resultFor({ label: 'Right', kind: 'bent' });
+    const open = resultFor({ label: 'Right', kind: 'open' });
+    for (let frame = 0; frame < 4; frame += 1) processHands(raised, frame * 33);
+    processHands(bent, 132);
+    const pending = processHands(bent, 165).hands[0];
+    expect(pending.phase).toBe('awaiting-release');
+    expect(pending.releaseCorrection).toContain('Extend');
+
+    for (let frame = 0; frame < 3; frame += 1) {
+      const state = processHands(open, 198 + frame * 33).hands[0];
+      expect(state.justReleased).toBe(false);
+      expect(state.phase).toBe('awaiting-release');
+    }
+    const released = processHands(open, 297).hands[0];
+    expect(released.releasePose).toBe(true);
+    expect(released.justReleased).toBe(true);
+    expect(released.phase).toBe('released');
+  });
+
+  it('requires all fingers and a camera-facing palm for release', () => {
+    const open = processHands(resultFor({ label: 'Right', kind: 'open' }), 0).hands[0];
+    const side = processHands(resultFor({ label: 'Right', kind: 'side-open' }), 33).hands[0];
+
+    expect(open.extendedFingerCount).toBe(5);
+    expect(open.allFingersExtended).toBe(true);
+    expect(open.palmFacingCamera).toBe(true);
+    expect(open.releasePose).toBe(true);
+    expect(side.allFingersExtended).toBe(true);
+    expect(side.palmFacingCamera).toBe(false);
+    expect(side.releasePose).toBe(false);
+    expect(side.releaseCorrection).toContain('palm');
+  });
+
+  it('cancels a pending release after the timeout', () => {
+    const raised = resultFor({ label: 'Right', kind: 'raised' });
+    const bent = resultFor({ label: 'Right', kind: 'bent' });
+    for (let frame = 0; frame < 4; frame += 1) processHands(raised, frame * 33);
+    processHands(bent, 132);
+    processHands(bent, 165);
+
+    const cancelled = processHands(bent, 1700).hands[0];
+    expect(cancelled.releaseCancelled).toBe(true);
+    expect(cancelled.phase).toBe('idle');
   });
 
   it('tracks both hands independently', () => {

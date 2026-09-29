@@ -3,6 +3,8 @@ import { DrawingUtils, HandLandmarker } from '@mediapipe/tasks-vision';
 import { createHandTracker } from './vision/hand-tracker';
 import { processHands, resetHandProcessing } from './input/process-hands';
 import { IndexPathRecorder } from './drawing/path-recorder';
+import { DEFAULT_SHAPE_TEMPLATES, ShapeEvaluator, type ShapeEvaluation } from './shapes/shape-evaluator';
+import { presentCastResult } from './ui/cast-result';
 
 const video = document.querySelector<HTMLVideoElement>('#camera')!;
 const pathCanvas = document.querySelector<HTMLCanvasElement>('#path')!;
@@ -11,11 +13,17 @@ const pathContext = pathCanvas.getContext('2d')!;
 const context = canvas.getContext('2d')!;
 const drawing = new DrawingUtils(context);
 const pathRecorder = new IndexPathRecorder();
+const shapeEvaluator = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES);
 const startButton = document.querySelector<HTMLButtonElement>('#start')!;
 const stopButton = document.querySelector<HTMLButtonElement>('#stop')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
 const handCount = document.querySelector<HTMLSpanElement>('#hand-count')!;
 const castingStatus = document.querySelector<HTMLSpanElement>('#casting-status')!;
+const resultCard = document.querySelector<HTMLElement>('#cast-result')!;
+const resultIcon = document.querySelector<HTMLSpanElement>('#cast-result-icon')!;
+const resultTitle = document.querySelector<HTMLElement>('#cast-result-title')!;
+const resultDetail = document.querySelector<HTMLElement>('#cast-result-detail')!;
+const resultCorrection = document.querySelector<HTMLElement>('#cast-result-correction')!;
 const placeholder = document.querySelector<HTMLParagraphElement>('#placeholder')!;
 const preview = document.querySelector<HTMLDivElement>('.preview')!;
 
@@ -41,6 +49,7 @@ function stopCamera(message = 'Camera stopped. You can start again.'): void {
   previousVideoTime = -1;
   resetHandProcessing();
   pathRecorder.reset();
+  clearCastResult();
   pathContext.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
   context.clearRect(0, 0, canvas.width, canvas.height);
   placeholder.hidden = false;
@@ -50,6 +59,27 @@ function stopCamera(message = 'Camera stopped. You can start again.'): void {
   startButton.disabled = false;
   stopButton.disabled = true;
   setStatus(message);
+}
+
+function clearCastResult(): void {
+  resultCard.hidden = true;
+  delete resultCard.dataset.state;
+  resultIcon.textContent = '';
+  resultTitle.textContent = '';
+  resultDetail.textContent = '';
+  resultCorrection.textContent = '';
+  resultCorrection.hidden = true;
+}
+
+function showCastResult(evaluation: ShapeEvaluation): void {
+  const presentation = presentCastResult(evaluation);
+  resultCard.hidden = false;
+  resultCard.dataset.state = presentation.state;
+  resultIcon.textContent = presentation.icon;
+  resultTitle.textContent = presentation.title;
+  resultDetail.textContent = presentation.detail;
+  resultCorrection.hidden = !presentation.correction;
+  resultCorrection.textContent = presentation.correction ?? '';
 }
 
 function drawRecordedPaths(): void {
@@ -141,15 +171,21 @@ function trackFrame(activeSession: number): void {
       context.clearRect(0, 0, canvas.width, canvas.height);
 
       const processedHands = processHands(results, timestampMs);
-      pathRecorder.update(processedHands.hands, results.landmarks);
+      const completedStrokes = pathRecorder.update(processedHands.hands, results.landmarks);
+      if (completedStrokes.length > 0) {
+        for (const stroke of completedStrokes) showCastResult(shapeEvaluator.evaluate(stroke));
+      }
       drawRecordedPaths();
       for (const [handIndex, landmarks] of results.landmarks.entries()) {
         const casting = processedHands.hands[handIndex];
+        const landmarkColor = casting?.isCasting
+          ? '#ffd166'
+          : casting?.phase === 'awaiting-release' ? '#f2a65a' : '#85e3c7';
         drawing.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, {
-          color: casting?.isCasting ? '#ffd166' : '#85e3c7', lineWidth: 3,
+          color: landmarkColor, lineWidth: 3,
         });
         drawing.drawLandmarks(landmarks, {
-          color: '#ffffff', fillColor: casting?.isCasting ? '#ffd166' : '#85e3c7', radius: 4, lineWidth: 1,
+          color: '#ffffff', fillColor: landmarkColor, radius: 4, lineWidth: 1,
         });
         if (casting?.isCasting) drawCastingIndicator(landmarks);
       }
@@ -158,7 +194,10 @@ function trackFrame(activeSession: number): void {
       handCount.textContent = `${count} ${count === 1 ? 'hand' : 'hands'} detected`;
       const castingHands = processedHands.hands.filter((hand) => hand.isCasting);
       const startedHands = processedHands.hands.filter((hand) => hand.justStarted);
+      const pendingHands = processedHands.hands.filter((hand) => hand.phase === 'awaiting-release');
+      const cancelledHands = processedHands.hands.filter((hand) => hand.releaseCancelled);
       if (startedHands.length > 0) {
+        clearCastResult();
         const labels = startedHands.map((hand) => hand.label).join(' + ');
         castingStatus.textContent = `Casting started · ${labels}`;
         castingStatus.dataset.active = 'true';
@@ -166,6 +205,13 @@ function trackFrame(activeSession: number): void {
         const labels = castingHands.map((hand) => hand.label).join(' + ');
         castingStatus.textContent = `Writing path · ${labels}`;
         castingStatus.dataset.active = 'true';
+      } else if (pendingHands.length > 0) {
+        const correction = pendingHands.find((hand) => hand.releaseCorrection)?.releaseCorrection;
+        castingStatus.textContent = correction ?? 'Show your palm to release';
+        castingStatus.dataset.active = 'true';
+      } else if (cancelledHands.length > 0) {
+        castingStatus.textContent = 'Spell cancelled · show your palm to release';
+        delete castingStatus.dataset.active;
       } else {
         const correction = processedHands.hands.find((hand) => hand.correction)?.correction;
         castingStatus.textContent = count > 0

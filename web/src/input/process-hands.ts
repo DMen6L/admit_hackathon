@@ -10,16 +10,23 @@ const MIDDLE_PIP = 10;
 const MIDDLE_TIP = 12;
 const RING_PIP = 14;
 const RING_TIP = 16;
+const PINKY_MCP = 17;
 const PINKY_PIP = 18;
 const PINKY_TIP = 20;
 const WRIST = 0;
 
 const RAISED_INDEX_START_FRAMES = 4;
 const RAISED_INDEX_RELEASE_FRAMES = 2;
+const OPEN_PALM_RELEASE_FRAMES = 4;
+const RELEASE_TIMEOUT_MS = 1500;
 const INDEX_VERTICAL_MARGIN = 0.10;
 const INDEX_EXTENSION_RATIO = 1.08;
 const CURLED_FINGER_RATIO = 1.08;
 const THUMB_PALM_RATIO = 1.25;
+const EXTENDED_FINGER_RATIO = 1.08;
+const PALM_FACING_COSINE = 0.45;
+
+export type CastingPhase = 'idle' | 'casting' | 'awaiting-release' | 'released';
 
 export interface CastingDiagnostics {
   indexRaised: boolean;
@@ -27,15 +34,24 @@ export interface CastingDiagnostics {
   thumbRelaxed: boolean;
   curledFingerCount: number;
   correction?: string;
+  extendedFingerCount: number;
+  allFingersExtended: boolean;
+  palmFacingCamera: boolean;
+  releasePose: boolean;
+  releaseCorrection?: string;
 }
 
 export interface CastingHandState extends CastingDiagnostics {
   handIndex: number;
   label: string;
+  phase: CastingPhase;
   isRaised: boolean;
   isCasting: boolean;
   justStarted: boolean;
   justEnded: boolean;
+  releaseStarted: boolean;
+  justReleased: boolean;
+  releaseCancelled: boolean;
   indexExtension: number;
   handScale: number;
 }
@@ -55,6 +71,9 @@ interface CastingState {
   candidateFrames: number;
   releaseFrames: number;
   isCasting: boolean;
+  phase: CastingPhase;
+  releaseCandidateFrames: number;
+  awaitingSinceMs: number;
 }
 
 const previousCasting = new Map<string, CastingState>();
@@ -79,6 +98,30 @@ function fingerIsCurled(points: Point[], pipIndex: number, tipIndex: number, han
     && palmDistance <= handScale * 1.35;
 }
 
+function fingerIsExtended(points: Point[], pipIndex: number, tipIndex: number): boolean {
+  return distance(points[WRIST], points[tipIndex]) > distance(points[WRIST], points[pipIndex]) * EXTENDED_FINGER_RATIO;
+}
+
+function palmFacingCamera(points: Point[]): boolean {
+  const index = {
+    x: points[INDEX_MCP].x - points[WRIST].x,
+    y: points[INDEX_MCP].y - points[WRIST].y,
+    z: (points[INDEX_MCP].z ?? 0) - (points[WRIST].z ?? 0),
+  };
+  const pinky = {
+    x: points[PINKY_MCP].x - points[WRIST].x,
+    y: points[PINKY_MCP].y - points[WRIST].y,
+    z: (points[PINKY_MCP].z ?? 0) - (points[WRIST].z ?? 0),
+  };
+  const normal = {
+    x: index.y * pinky.z - index.z * pinky.y,
+    y: index.z * pinky.x - index.x * pinky.z,
+    z: index.x * pinky.y - index.y * pinky.x,
+  };
+  const magnitude = Math.hypot(normal.x, normal.y, normal.z);
+  return magnitude > Number.EPSILON && Math.abs(normal.z) / magnitude >= PALM_FACING_COSINE;
+}
+
 function correctionFor(diagnostics: CastingDiagnostics): string | undefined {
   if (!diagnostics.indexRaised) return 'Raise your index finger';
   if (!diagnostics.otherFingersCurled) return 'Curl your middle, ring, and pinky fingers';
@@ -86,16 +129,22 @@ function correctionFor(diagnostics: CastingDiagnostics): string | undefined {
   return undefined;
 }
 
+function releaseCorrectionFor(diagnostics: CastingDiagnostics): string | undefined {
+  if (!diagnostics.allFingersExtended) return 'Extend all five fingers to release';
+  if (!diagnostics.palmFacingCamera) return 'Turn your palm toward the camera';
+  return undefined;
+}
+
 /**
- * Recognize a stable raised-index casting pose from MediaPipe landmarks.
+ * Recognize a stable raised-index casting pose and a deliberate open-palm release.
  *
  * The index must extend upward while the middle, ring, and pinky remain curled.
- * Distances use world landmarks when available; the image-space vertical check
- * keeps the definition tied to the player's visible raised finger.
+ * Casting ends only after the hand leaves that pose; a stable camera-facing open
+ * palm then confirms the release. Distances use world landmarks when available.
  */
 export function processHands(
   results: HandLandmarkerResult,
-  _timestampMs: number,
+  timestampMs: number,
 ): HandProcessingResult {
   const hands = results.landmarks.map((landmarks, handIndex) => {
     const world = results.worldLandmarks[handIndex];
@@ -105,9 +154,6 @@ export function processHands(
     const imageHandScale = distance(imagePoints[WRIST], imagePoints[MIDDLE_MCP]);
     const indexTipDistance = distance(metricPoints[WRIST], metricPoints[INDEX_TIP]);
     const indexPipDistance = distance(metricPoints[WRIST], metricPoints[INDEX_PIP]);
-    const indexExtension = handScale > Number.EPSILON
-      ? indexTipDistance / handScale
-      : Number.POSITIVE_INFINITY;
     const indexRaised = imagePoints[INDEX_PIP].y - imagePoints[INDEX_TIP].y
       > imageHandScale * INDEX_VERTICAL_MARGIN
       && imagePoints[INDEX_MCP].y - imagePoints[INDEX_PIP].y > imageHandScale * 0.02
@@ -124,13 +170,31 @@ export function processHands(
       <= handScale * THUMB_PALM_RATIO
       || distance(metricPoints[WRIST], metricPoints[THUMB_TIP])
       <= distance(metricPoints[WRIST], metricPoints[THUMB_IP]) * CURLED_FINGER_RATIO;
+    const extended = [
+      fingerIsExtended(metricPoints, INDEX_PIP, INDEX_TIP),
+      fingerIsExtended(metricPoints, MIDDLE_PIP, MIDDLE_TIP),
+      fingerIsExtended(metricPoints, RING_PIP, RING_TIP),
+      fingerIsExtended(metricPoints, PINKY_PIP, PINKY_TIP),
+    ];
+    const thumbExtended = distance(metricPoints[WRIST], metricPoints[THUMB_TIP])
+      > distance(metricPoints[WRIST], metricPoints[THUMB_IP]) * EXTENDED_FINGER_RATIO
+      && distance(metricPoints[THUMB_TIP], metricPoints[INDEX_MCP]) > handScale * 0.55;
+    const extendedFingerCount = extended.filter(Boolean).length + (thumbExtended ? 1 : 0);
+    const allFingersExtended = extendedFingerCount === 5;
+    const palmIsFacingCamera = palmFacingCamera(metricPoints);
+    const releasePose = allFingersExtended && palmIsFacingCamera;
     const diagnostics: CastingDiagnostics = {
       indexRaised,
       otherFingersCurled,
       thumbRelaxed,
       curledFingerCount,
+      extendedFingerCount,
+      allFingersExtended,
+      palmFacingCamera: palmIsFacingCamera,
+      releasePose,
     };
     diagnostics.correction = correctionFor(diagnostics);
+    diagnostics.releaseCorrection = releaseCorrectionFor(diagnostics);
     const qualifies = indexRaised && otherFingersCurled && thumbRelaxed;
     const label = handLabel(results, handIndex);
     const key = `${label}-${handIndex}`;
@@ -138,28 +202,61 @@ export function processHands(
       candidateFrames: 0,
       releaseFrames: 0,
       isCasting: false,
+      phase: 'idle' as CastingPhase,
+      releaseCandidateFrames: 0,
+      awaitingSinceMs: 0,
     };
     let justStarted = false;
     let justEnded = false;
+    let releaseStarted = false;
+    let justReleased = false;
+    let releaseCancelled = false;
 
-    if (qualifies) {
+    if (state.phase === 'released') state.phase = 'idle';
+
+    if (state.phase === 'casting') {
+      if (qualifies) {
+        state.candidateFrames += 1;
+        state.releaseFrames = 0;
+      } else {
+        state.candidateFrames = 0;
+        state.releaseFrames += 1;
+        if (state.releaseFrames >= RAISED_INDEX_RELEASE_FRAMES) {
+          state.isCasting = false;
+          state.phase = 'awaiting-release';
+          state.awaitingSinceMs = timestampMs;
+          state.releaseCandidateFrames = releasePose ? 1 : 0;
+          justEnded = true;
+          releaseStarted = true;
+        }
+      }
+    } else if (state.phase === 'awaiting-release') {
+      if (timestampMs - state.awaitingSinceMs >= RELEASE_TIMEOUT_MS) {
+        state.phase = 'idle';
+        state.awaitingSinceMs = 0;
+        state.releaseCandidateFrames = 0;
+        releaseCancelled = true;
+      } else if (releasePose) {
+        state.releaseCandidateFrames += 1;
+        if (state.releaseCandidateFrames >= OPEN_PALM_RELEASE_FRAMES) {
+          state.phase = 'released';
+          state.releaseCandidateFrames = 0;
+          justReleased = true;
+        }
+      } else {
+        state.releaseCandidateFrames = 0;
+      }
+    } else if (qualifies) {
       state.candidateFrames += 1;
       state.releaseFrames = 0;
-      if (!state.isCasting && state.candidateFrames >= RAISED_INDEX_START_FRAMES) {
+      if (state.candidateFrames >= RAISED_INDEX_START_FRAMES) {
         state.isCasting = true;
+        state.phase = 'casting';
         justStarted = true;
       }
     } else {
       state.candidateFrames = 0;
-      if (state.isCasting) {
-        state.releaseFrames += 1;
-        if (state.releaseFrames >= RAISED_INDEX_RELEASE_FRAMES) {
-          state.isCasting = false;
-          justEnded = true;
-        }
-      } else {
-        state.releaseFrames = 0;
-      }
+      state.releaseFrames = 0;
     }
     previousCasting.set(key, state);
 
@@ -167,11 +264,17 @@ export function processHands(
       ...diagnostics,
       handIndex,
       label,
+      phase: state.phase,
       isRaised: indexRaised,
       isCasting: state.isCasting,
       justStarted,
       justEnded,
-      indexExtension,
+      releaseStarted,
+      justReleased,
+      releaseCancelled,
+      indexExtension: handScale > Number.EPSILON
+        ? indexTipDistance / handScale
+        : Number.POSITIVE_INFINITY,
       handScale,
     };
   });

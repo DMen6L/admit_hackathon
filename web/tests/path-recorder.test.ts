@@ -5,9 +5,11 @@ function hand(overrides: Partial<PathHandState> = {}): PathHandState {
   return {
     handIndex: 0,
     label: 'Right',
+    phase: 'idle',
     isCasting: false,
     justStarted: false,
-    justEnded: false,
+    justReleased: false,
+    releaseCancelled: false,
     ...overrides,
   };
 }
@@ -29,10 +31,10 @@ describe('index path recorder', () => {
 
   it('starts and extends a stroke from the index fingertip', () => {
     const recorder = new IndexPathRecorder();
-    const casting = hand({ isCasting: true, justStarted: true });
+    const casting = hand({ phase: 'casting', isCasting: true, justStarted: true });
 
     recorder.update([casting], landmarks({ x: 0.2, y: 0.2 }));
-    recorder.update([hand({ isCasting: true }),], landmarks({ x: 0.4, y: 0.3 }));
+    recorder.update([hand({ phase: 'casting', isCasting: true }),], landmarks({ x: 0.4, y: 0.3 }));
 
     const stroke = recorder.getStrokes()[0];
     expect(stroke.label).toBe('Right');
@@ -44,21 +46,29 @@ describe('index path recorder', () => {
 
   it('filters tiny movements and clamps points to normalized coordinates', () => {
     const recorder = new IndexPathRecorder();
-    recorder.update([hand({ isCasting: true, justStarted: true })], landmarks({ x: 1.2, y: -0.2 }));
-    recorder.update([hand({ isCasting: true })], landmarks({ x: 1.204, y: -0.196 }));
+    recorder.update([hand({ phase: 'casting', isCasting: true, justStarted: true })], landmarks({ x: 1.2, y: -0.2 }));
+    recorder.update([hand({ phase: 'casting', isCasting: true })], landmarks({ x: 1.204, y: -0.196 }));
 
     const stroke = recorder.getStrokes()[0];
     expect(stroke.points).toHaveLength(1);
     expect(stroke.points[0]).toEqual({ x: 1, y: 0 });
   });
 
-  it('clears a stroke when casting ends or tracking disappears', () => {
+  it('keeps a stroke pending until release, then emits it once', () => {
     const recorder = new IndexPathRecorder();
-    recorder.update([hand({ isCasting: true, justStarted: true })], landmarks({ x: 0.2, y: 0.2 }));
-    recorder.update([hand({ justEnded: true })], landmarks({ x: 0.3, y: 0.3 }));
+    recorder.update([hand({ phase: 'casting', isCasting: true, justStarted: true })], landmarks({ x: 0.2, y: 0.2 }));
+    recorder.update([hand({ phase: 'awaiting-release' })], landmarks({ x: 0.3, y: 0.3 }));
+    expect(recorder.getStrokes()).toHaveLength(1);
+
+    const completed = recorder.update([hand({ phase: 'released', justReleased: true })], landmarks({ x: 0.3, y: 0.3 }));
+    expect(completed).toHaveLength(1);
+    expect(completed[0].points).toEqual([{ x: 0.2, y: 0.2 }]);
     expect(recorder.getStrokes()).toEqual([]);
 
-    recorder.update([hand({ isCasting: true, justStarted: true })], landmarks({ x: 0.2, y: 0.2 }));
+    recorder.update([hand({ phase: 'casting', isCasting: true, justStarted: true })], landmarks({ x: 0.2, y: 0.2 }));
+    recorder.update([hand({ phase: 'idle', releaseCancelled: true })], landmarks({ x: 0.2, y: 0.2 }));
+    expect(recorder.getStrokes()).toEqual([]);
+
     recorder.update([], []);
     expect(recorder.getStrokes()).toEqual([]);
   });
@@ -66,8 +76,8 @@ describe('index path recorder', () => {
   it('keeps left and right strokes independent', () => {
     const recorder = new IndexPathRecorder();
     recorder.update([
-      hand({ label: 'Left', handIndex: 0, isCasting: true, justStarted: true }),
-      hand({ label: 'Right', handIndex: 1, isCasting: true, justStarted: true }),
+      hand({ label: 'Left', handIndex: 0, phase: 'casting', isCasting: true, justStarted: true }),
+      hand({ label: 'Right', handIndex: 1, phase: 'casting', isCasting: true, justStarted: true }),
     ], [landmarks({ x: 0.2, y: 0.2 })[0], landmarks({ x: 0.8, y: 0.8 })[0]]);
 
     expect(recorder.getStrokes().map((stroke) => stroke.label)).toEqual(['Left', 'Right']);
@@ -75,7 +85,7 @@ describe('index path recorder', () => {
 
   it('resets every active stroke', () => {
     const recorder = new IndexPathRecorder();
-    recorder.update([hand({ isCasting: true, justStarted: true })], landmarks({ x: 0.2, y: 0.2 }));
+    recorder.update([hand({ phase: 'casting', isCasting: true, justStarted: true })], landmarks({ x: 0.2, y: 0.2 }));
 
     recorder.reset();
 

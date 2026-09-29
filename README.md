@@ -29,17 +29,19 @@ The initial files are:
 
 - [`web/src/main.ts`](web/src/main.ts): camera lifecycle, frame processing, and the landmark overlay.
 - [`web/src/vision/hand-tracker.ts`](web/src/vision/hand-tracker.ts): MediaPipe initialization and tracking configuration.
-- [`web/src/input/process-hands.ts`](web/src/input/process-hands.ts): custom gesture calculations and corrective-feedback data, called with each frame's results and timestamp.
-- [`web/src/drawing/path-recorder.ts`](web/src/drawing/path-recorder.ts): normalized index-fingertip strokes recorded while casting is active.
+- [`web/src/input/process-hands.ts`](web/src/input/process-hands.ts): custom gesture and open-palm release state, with corrective-feedback data.
+- [`web/src/drawing/path-recorder.ts`](web/src/drawing/path-recorder.ts): normalized index-fingertip strokes recorded until a deliberate release.
+- [`web/src/shapes/shape-evaluator.ts`](web/src/shapes/shape-evaluator.ts): tolerant topology, turn, closure, direction, proportion, and circle-radial matching with shape corrections.
+- [`web/src/ui/cast-result.ts`](web/src/ui/cast-result.ts): testable presentation states for successful, near-miss, failed, and cancelled casts.
 - [`web/index.html`](web/index.html) and [`web/src/style.css`](web/src/style.css): the basic tracking screen.
 
 The preview is mirrored, while the landmark data passed to `processHands` uses the original camera coordinates. Results also arrive when no hands are detected. Handedness is a model classification, not a persistent identity for a hand across frames.
 
-The first custom casting gesture is a raised index finger. `processHands` checks that the index extends above the hand while the middle, ring, and pinky fingers are curled. The pose must remain stable for four frames before `justStarted` is emitted; two release frames end casting. A casting hand is highlighted in gold and labeled in the readout. Diagnostic fields provide concrete corrections when the pose is close but incomplete.
+The first custom casting gesture is a raised index finger. `processHands` checks that the index extends above the hand while the middle, ring, and pinky fingers are curled. The pose must remain stable for four frames before `justStarted` is emitted. When the pose ends, the stroke enters a pending release state; the user must show all five fingers in a stable, camera-facing palm for four frames to emit `justReleased`. A casting hand is highlighted in gold and labeled in the readout. Diagnostic fields provide concrete corrections for both casting and release poses.
 
-While casting, the index fingertip writes a smoothed gold path on a dedicated canvas over the webcam preview. Strokes are normalized to the video dimensions, recorded independently for each hand, and cleared when casting ends, tracking disappears, or the camera stops. The path is visual feedback only; it does not yet create a spell or persist between casts.
+While casting, the index fingertip writes a smoothed gold path on a dedicated canvas over the webcam preview. Strokes are normalized to the video dimensions and recorded independently for each hand. The path remains visible while the player is asked to show their palm, then is evaluated against broad topology, corner, closure, direction, proportion, and circle-radial features for the sample triangle, circle, and lightning templates. Exact tracing is not required: small endpoint gaps and overshoots remain eligible for a closed shape, while lightning needs clearly separated endpoints and its alternating turns. Unsupported shapes, such as a square before a square template exists, are reported as unrecognized instead of being mislabeled as a triangle or lightning. A persistent result card clearly reports **SPELL CAST**, **ALMOST**, **CAST FAILED**, or **CAST CANCELLED** with a correction when needed; tracking loss, camera stop, and release timeout cancel the pending attempt.
 
-This first prototype uses CPU inference on the main thread. It establishes the input pipeline and one casting gesture; a broader gesture vocabulary, error mode, combat, and a playable scenario are not implemented yet. Move inference to a worker if it interferes with rendering as the game grows.
+This first prototype uses CPU inference on the main thread. It establishes the input pipeline, deliberate release gesture, and configurable shape matching; a broader gesture vocabulary, combat, and a playable scenario are not implemented yet. Move inference to a worker if it interferes with rendering as the game grows.
 
 Run `npm test` and `npm run build` from `web/` to validate gesture logic and produce `web/dist/`. Run `npm run preview` to inspect that build locally. The existing Python scaffold is independent of this browser prototype.
 
