@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Wizard Duel · Battle</title></head><body class="battle-page">
+<p id="battle-session-status" role="status">Entering the courtyard…</p>
+    <main id="game-screen" class="game-shell battle-shell" hidden>
+      <header class="game-header">
+        <div>
+          <p class="eyebrow">Wizard Duel / Practice arena</p>
+          <h1>Moonlit courtyard</h1>
+          <p>Draw your rune. Release your magic.</p>
+        </div>
+        <div class="account-menu" aria-label="Signed-in account">
+          <a href="./asset-preview.html">Workshop</a><span id="current-user"></span>
+          <button id="sign-out" type="button">Sign out</button>
+        </div>
+      </header>
+
+      <section id="duel" class="duel" aria-label="Practice duel">
+        <div class="duel-head"><span>BERIK · ARCANE WARDEN</span><b>VS</b><span>ALISHER · EMBER SHADE</span></div>
+        <div class="duel-hud">
+          <div><label for="berik-health">Berik <span data-health-label="0">100 / 100</span></label><progress id="berik-health" data-health="0" max="100" value="100"></progress></div>
+          <div><label for="alisher-health">Alisher <span data-health-label="1">100 / 100</span></label><progress id="alisher-health" data-health="1" max="100" value="100"></progress></div>
+        </div>
+        <div class="duel-stage">
+          <canvas width="1460" height="476" aria-label="Berik and Alisher casting spells in the arena">Use the controls below to practice casting spells.</canvas>
+          <div class="duel-overlay" data-overlay hidden><strong data-overlay-title></strong><span data-overlay-detail></span></div>
+        </div>
+        <div class="duel-controls">
+          <button type="button" data-spell="fireball">△ Fireball</button><button type="button" data-spell="shield">○ Shield</button><button type="button" data-spell="lightning">ϟ Lightning</button>
+          <button type="button" data-spell="fireball" data-side="1">Opponent attack</button><button type="button" data-pause aria-pressed="false">Pause</button><button type="button" data-reset>Restart duel</button>
+        </div>
+        <div class="duel-readiness"><label for="cast-readiness">Your next cast <span data-ready-label>Ready</span></label><progress id="cast-readiness" max="900" value="900" data-readiness></progress></div>
+        <p data-duel-status role="status" aria-live="polite">Preparing the arena…</p>
+        <p data-load-error hidden>Artwork could not load. <a href="./battle.html">Reload and try again</a></p>
+        
+        <p>Draw a triangle for a fireball, a circle for a shield, or a zigzag for lightning. Open your palm to release. You can also practice with the buttons.</p>
+      </section>
+
+      <section class="tracker" aria-label="Hand tracking preview">
+        <h2 class="tracking-title">Your spellcasting hand</h2><div class="preview">
+          <video id="camera" autoplay muted playsinline aria-label="Mirrored webcam view"></video>
+          <canvas id="path" aria-hidden="true"></canvas>
+          <canvas id="landmarks" aria-hidden="true"></canvas>
+          <p id="placeholder">Your camera preview will appear here.</p>
+        </div>
+        <div class="toolbar">
+          <div class="buttons">
+            <button id="start" type="button">Start camera</button>
+            <button id="stop" type="button" disabled>Stop camera</button>
+          </div>
+          <div class="readouts" aria-live="polite">
+            <span id="hand-count">0 hands detected</span>
+            <span id="casting-status">Casting: waiting for a hand</span>
+          </div>
+        </div>
+        <aside id="cast-result" class="cast-result" hidden role="status" aria-live="assertive">
+          <span id="cast-result-icon" class="cast-result__icon" aria-hidden="true"></span>
+          <div>
+            <strong id="cast-result-title"></strong>
+            <p id="cast-result-detail"></p>
+            <p id="cast-result-spell" class="cast-result__spell" hidden></p>
+            <p id="cast-result-rune" class="cast-result__rune" hidden></p>
+            <p id="cast-result-correction" class="cast-result__correction" hidden></p>
+          </div>
+        </aside>
+      </section>
+
+      <p id="status" role="status" aria-live="polite">Ready when you are.</p>
+      <p class="privacy">Camera frames are processed on this device. No video is uploaded.</p>
+    </main>
+<script type="module" src="/src/main.ts"></script></body></html>

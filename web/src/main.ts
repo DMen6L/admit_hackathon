@@ -10,8 +10,9 @@ import {
   type SpellCastPayload,
 } from './spells/spell-resolver';
 import { presentCastResult } from './ui/cast-result';
-import { AuthController } from './auth/auth-controller';
 import { DemoAuthService } from './auth/auth-service';
+import { mountDuel } from './duel/duel-view';
+import './duel/battle-page.css';
 
 const video = document.querySelector<HTMLVideoElement>('#camera')!;
 const pathCanvas = document.querySelector<HTMLCanvasElement>('#path')!;
@@ -336,14 +337,24 @@ startButton.addEventListener('click', () => { void startCamera(); });
 stopButton.addEventListener('click', () => stopCamera());
 window.addEventListener('pagehide', () => stopCamera());
 
-const authController = new AuthController(
-  new DemoAuthService(window.localStorage, window.sessionStorage),
-  { onSignOut: () => stopCamera('Signed out. Your camera has been released.') },
-);
-void authController.initialize();
+const duel = mountDuel(document.querySelector<HTMLElement>('#duel')!);
+const auth = new DemoAuthService(window.localStorage, window.sessionStorage);
+void auth.restoreSession().then((user) => {
+  if (!user) { window.location.replace(import.meta.env.BASE_URL); return; }
+  document.querySelector('#current-user')!.textContent = user.displayName;
+  document.querySelector<HTMLElement>('#game-screen')!.hidden = false;
+  document.querySelector<HTMLElement>('#battle-session-status')!.hidden = true;
+}).catch(() => {
+  document.querySelector('#battle-session-status')!.textContent = 'Session unavailable. Return to the login page and try again.';
+});
+document.querySelector<HTMLButtonElement>('#sign-out')!.addEventListener('click', () => {
+  stopCamera(); duel.reset();
+  void auth.signOut().then(() => window.location.replace(import.meta.env.BASE_URL)).catch(() => setStatus('Sign-out failed. Please try again.', true));
+});
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
+    duel.dispose();
     stopCamera();
     void trackerLoading?.then((loaded) => loaded.close()).catch(() => {});
   });

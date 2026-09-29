@@ -219,4 +219,46 @@ Preserve the defining loop: **webcam input → movement recognition → game act
 
 ## Visual design references
 
+### Animation workshop
+
+Run `npm run dev` in `web/`, then open `/asset-preview.html` (also linked from login).
+The workshop previews both wizards' idle, casting, and dodge frames over an extracted
+arena. It offers play/pause, restart, speed selection, single-frame inspection, and
+optional repetition of one-shot clips. Playback starts paused.
+
+`npm run assets:extract` generates 36 transparent character SVG frames, 20 spell-effect frames, an arena SVG,
+and `public/assets/game/manifest.json`. Development and production builds run this
+automatically. Generated files are ignored; the original design boards remain the source.
+The preview page is included in the production build.
+
+See [the extraction contract](docs/visual-assets.md#generated-game-assets) for dimensions,
+timings, frame indices, and source-art limitations.
+
+### Local practice duel
+
+The game has its own route, `/battle.html`. The root page is login only; successful
+sign-in (or restoring a session) navigates to battle. The battle page uses a wide
+arena with a compact camera panel, stacking the camera underneath on small screens.
+Artwork loading times out after 15 seconds and offers a reload link on failure.
+
+After demo sign-in, the courtyard renders both wizards with live health bars.
+Use Fireball, Shield, Lightning, or Opponent attack to test it without a camera.
+Webcam `spell-cast` events also trigger Berik's visuals: `rune.triangle` → Fireball,
+`rune.circle` → Shield, `rune.lightning` → Lightning. This is a demo presentation
+mapping; the existing spell payloads and recognition names are unchanged.
+
+`src/duel/demo-duel.ts` contains isolated local demo rules (100 health, 20 fireball
+damage, 15 lightning damage, 900 ms cast cooldown, three-second one-hit shield).
+`duel-view.ts` loads assets and renders these rules. A backend integration should
+replace the local model with authoritative server state. The opponent attacks only
+when its demo button is pressed. Logout resets the duel; hidden pages pause it.
+The practice duel ends at zero health and offers Restart duel.
+
+Pause freezes the duel clock, projectiles, shields, and cooldowns; webcam spell
+events are ignored by the duel while paused. The readiness meter shows when the
+next cast is available, and the winner overlay offers a clear ending. Asset-load
+errors provide a reload link. The workshop's **Asset collection → Spell effects**
+option inspects all fireball, shield, and lightning frames with the same playback
+and frame-selection controls used for characters.
+
 The duel-screen, character, animation, and effects reference boards live in [`web/public/assets/design/`](web/public/assets/design/). See [`docs/visual-assets.md`](docs/visual-assets.md) for their contents, UI composition, production constraints, runtime status, and the expected frame-export workflow.

@@ -1,14 +1,9 @@
 import {
   InvalidCredentialsError,
   type AuthService,
-  type AuthUser,
   type SignInCredentials,
 } from './auth-service';
 import { validateCredentials } from './credentials';
-
-interface AuthControllerOptions {
-  onSignOut: () => void;
-}
 
 function requiredElement<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -18,7 +13,6 @@ function requiredElement<T extends Element>(selector: string): T {
 
 export class AuthController {
   private readonly loginScreen = requiredElement<HTMLElement>('#login-screen');
-  private readonly gameScreen = requiredElement<HTMLElement>('#game-screen');
   private readonly form = requiredElement<HTMLFormElement>('#login-form');
   private readonly email = requiredElement<HTMLInputElement>('#email');
   private readonly password = requiredElement<HTMLInputElement>('#password');
@@ -28,24 +22,26 @@ export class AuthController {
   private readonly formError = requiredElement<HTMLElement>('#login-error');
   private readonly submitButton = requiredElement<HTMLButtonElement>('#login-submit');
   private readonly passwordToggle = requiredElement<HTMLButtonElement>('#password-toggle');
-  private readonly currentUser = requiredElement<HTMLElement>('#current-user');
-  private readonly signOutButton = requiredElement<HTMLButtonElement>('#sign-out');
 
   constructor(
     private readonly authService: AuthService,
-    private readonly options: AuthControllerOptions,
   ) {}
 
   async initialize(): Promise<void> {
     this.form.addEventListener('submit', (event) => { void this.handleSubmit(event); });
     this.passwordToggle.addEventListener('click', () => this.togglePasswordVisibility());
-    this.signOutButton.addEventListener('click', () => { void this.handleSignOut(); });
     this.email.addEventListener('input', () => this.setFieldError(this.email, this.emailError));
     this.password.addEventListener('input', () => this.setFieldError(this.password, this.passwordError));
 
-    const user = await this.authService.restoreSession();
-    if (user) this.showGame(user);
-    else this.showLogin();
+    try {
+      const user = await this.authService.restoreSession();
+      if (user) this.showGame();
+      else this.showLogin();
+    } catch {
+      this.showLogin();
+      this.formError.textContent = 'Your session could not be restored. Please sign in again.';
+      this.formError.hidden = false;
+    }
   }
 
   private async handleSubmit(event: SubmitEvent): Promise<void> {
@@ -67,9 +63,9 @@ export class AuthController {
 
     this.setPending(true);
     try {
-      const user = await this.authService.signIn(credentials);
+      await this.authService.signIn(credentials);
       this.form.reset();
-      this.showGame(user);
+      this.showGame();
     } catch (error) {
       this.formError.textContent = error instanceof InvalidCredentialsError
         ? error.message
@@ -81,25 +77,11 @@ export class AuthController {
     }
   }
 
-  private async handleSignOut(): Promise<void> {
-    this.signOutButton.disabled = true;
-    try {
-      await this.authService.signOut();
-      this.options.onSignOut();
-      this.showLogin();
-    } finally {
-      this.signOutButton.disabled = false;
-    }
-  }
-
-  private showGame(user: AuthUser): void {
-    this.currentUser.textContent = user.displayName;
-    this.loginScreen.hidden = true;
-    this.gameScreen.hidden = false;
+  private showGame(): void {
+    window.location.replace(`${import.meta.env.BASE_URL}battle.html`);
   }
 
   private showLogin(): void {
-    this.gameScreen.hidden = true;
     this.loginScreen.hidden = false;
     this.password.value = '';
     this.email.focus();

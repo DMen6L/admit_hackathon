@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "assets:extract": "node scripts/extract-game-assets.mjs",
+    "predev": "npm run assets:extract",
+    "prebuild": "npm run assets:extract",
     "setup": "node scripts/setup-assets.mjs",
     "dev": "vite --host 127.0.0.1",
     "test": "vitest run",

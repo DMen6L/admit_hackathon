@@ -135,6 +135,48 @@ The current application recognizes hand-drawn triangle, circle, and lightning sh
 
 The art boards introduce fireball, shield, lightning, dodge, and hit effects. The duel-screen mockup goes further by proposing triangle → Fireball, circle → Shield, `Z` → Lightning, and lateral leaning → Dodge. These concepts are not mapped one-to-one to the prototype's current spell bindings (`Aegis Ward`, `Astral Veil`, and `Storm Lance`). Treat the mockup mappings as design proposals until combat configuration explicitly adopts them; importing the boards does not change gesture recognition or gameplay behavior.
 
+## Generated game assets
+
+`web/scripts/extract-game-assets.mjs` extracts artwork from the animation board and
+the duel-screen mockup. Run `npm run assets:extract` from `web/`; `dev` and `build`
+also run it automatically. It requires Node only and does not rasterize or modify
+the original SVG files. Generated output lives under `web/public/assets/game/`.
+
+- `arena.svg`: 1460 × 476 arena from the duel mockup, including scenery and floor
+  markings, excluding characters, spell effects, labels, and HUD. Its SVG retains
+  the source coordinate viewBox and the two required gradient definitions.
+- `berik/` and `alisher/`: six frames each for `idle`, `cast`, and `dodge`.
+  Frames use an 80 × 96 transparent canvas, translating source geometry by (12, 20).
+  The shared ground pivot is (32, 90); extra right padding preserves casting glyphs.
+  These measured exports differ from the proposed 64 × 96 production frame above.
+- `manifest.json`: version 1, relative frame paths, per-frame milliseconds,
+  dimensions, pivots, loop flags, unique-pose counts, and zero-based event frames.
+  Resolve paths relative to `assets/game/`, including the app's deployment base URL.
+
+The extractor selects exact source transforms and validates each expected frame.
+Arena extraction uses explicit artwork boundaries; changes to the source layout
+require reviewing these selectors. This is a converter for the supplied boards,
+not a general-purpose SVG segmentation tool.
+
+Use `/asset-preview.html` to inspect the output. `src/assets/animation.ts` provides
+a renderer-independent elapsed-time sampler: idle loops; cast and dodge hold their
+last frame when finished. The workshop optionally repeats one-shots for inspection.
+Event markers document suggested visual timing only; they do not apply damage,
+grant invulnerability, send network commands, or change existing spell bindings.
+
+The illustrated strips contain repeated poses. In particular, idle has six copies
+of one pose, so its playback is still. The manifest and workshop report unique
+pose counts rather than inventing missing artwork. Dodge frames do not contain
+world movement; movement belongs to the game simulation and renderer.
+Fireball (8), shield (6), and lightning (6) frames are now extracted to `vfx/`.
+Their manifest entries include canvas sizes and logical pivots. The fireball
+canvas extends left to include the entire trail; its pivot stays on the fireball
+core. The 80 ms effect frame duration is a preview choice, not timing specified by
+the boards. Shield holds the final pose while active. The illustrated fireball
+strip has no distinct impact burst, so the practice renderer uses a procedural
+expanding ring for hit/block feedback. Final production artwork, dodge smears,
+and additional hit/casting effects remain future work.
+
 ## Refactor notes
 
 - Removed download-copy suffixes and normalized the three production-board filenames.
