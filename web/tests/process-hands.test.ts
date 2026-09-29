@@ -4,6 +4,9 @@ import {
   processHands,
   resetHandProcessing,
 } from '../src/input/process-hands';
+import { replayCapture } from '../src/debug/replay';
+import { ShapeEvaluator, DEFAULT_SHAPE_TEMPLATES } from '../src/shapes/shape-evaluator';
+import { RecognitionCaptureSession, parseCapture, type CaptureFrame } from '../src/debug/recognition-capture';
 
 interface Point {
   x: number;
@@ -105,6 +108,13 @@ describe('raised-index casting recognition', () => {
     expect(held.justStarted).toBe(false);
   });
 
+  it('uses elapsed time when frame rates vary', () => {
+    const raised = resultFor({ label: 'Right', kind: 'raised' });
+    expect(processHands(raised, 0).hands[0].justStarted).toBe(false);
+    expect(processHands(raised, 40).hands[0].justStarted).toBe(false);
+    expect(processHands(raised, 120).hands[0].justStarted).toBe(true);
+  });
+
   it('requires the other fingers to remain curled', () => {
     const open = processHands(resultFor({ label: 'Right', kind: 'open' }), 0).hands[0];
     const bent = processHands(resultFor({ label: 'Right', kind: 'bent' }), 33).hands[0];
@@ -116,13 +126,13 @@ describe('raised-index casting recognition', () => {
     expect(bent.correction).toContain('Raise');
   });
 
-  it('enters pending release after the raised index ends', () => {
+  it('enters pending release after the pose is lost for 100 ms', () => {
     const raised = resultFor({ label: 'Right', kind: 'raised' });
     const bent = resultFor({ label: 'Right', kind: 'bent' });
     for (let frame = 0; frame < 4; frame += 1) processHands(raised, frame * 33);
 
     const firstRelease = processHands(bent, 132).hands[0];
-    const ended = processHands(bent, 165).hands[0];
+    const ended = processHands(bent, 232).hands[0];
 
     expect(firstRelease.isCasting).toBe(true);
     expect(firstRelease.justEnded).toBe(false);
@@ -138,16 +148,16 @@ describe('raised-index casting recognition', () => {
     const open = resultFor({ label: 'Right', kind: 'open' });
     for (let frame = 0; frame < 4; frame += 1) processHands(raised, frame * 33);
     processHands(bent, 132);
-    const pending = processHands(bent, 165).hands[0];
+    const pending = processHands(bent, 232).hands[0];
     expect(pending.phase).toBe('awaiting-release');
     expect(pending.releaseCorrection).toContain('Extend');
 
     for (let frame = 0; frame < 3; frame += 1) {
-      const state = processHands(open, 198 + frame * 33).hands[0];
+      const state = processHands(open, 265 + frame * 33).hands[0];
       expect(state.justReleased).toBe(false);
       expect(state.phase).toBe('awaiting-release');
     }
-    const released = processHands(open, 297).hands[0];
+    const released = processHands(open, 364).hands[0];
     expect(released.releasePose).toBe(true);
     expect(released.justReleased).toBe(true);
     expect(released.phase).toBe('released');
@@ -172,9 +182,11 @@ describe('raised-index casting recognition', () => {
     const bent = resultFor({ label: 'Right', kind: 'bent' });
     for (let frame = 0; frame < 4; frame += 1) processHands(raised, frame * 33);
     processHands(bent, 132);
-    processHands(bent, 165);
+    processHands(bent, 232);
 
-    const cancelled = processHands(bent, 1700).hands[0];
+    for (let time = 330; time < 1700; time += 100) processHands(bent, time);
+
+    const cancelled = processHands(bent, 1800).hands[0];
     expect(cancelled.releaseCancelled).toBe(true);
     expect(cancelled.phase).toBe('idle');
   });
@@ -202,14 +214,78 @@ describe('raised-index casting recognition', () => {
     expect(next.justStarted).toBe(false);
   });
 
-  it('clears a hand state when tracking temporarily disappears', () => {
+  it('preserves a hand state through a brief tracking gap', () => {
     const raised = resultFor({ label: 'Right', kind: 'raised' });
     const missing = resultFor();
     for (let frame = 0; frame < 4; frame += 1) processHands(raised, frame * 33);
 
     expect(processHands(missing, 132).castingHands).toBe(0);
     const afterReturn = processHands(raised, 165).hands[0];
-    expect(afterReturn.isCasting).toBe(false);
+    expect(afterReturn.isCasting).toBe(true);
     expect(afterReturn.justStarted).toBe(false);
+  });
+
+  it('resumes the same stroke when the pointing pose briefly returns after release begins', () => {
+    const raised = resultFor({ label: 'Right', kind: 'raised' });
+    const bent = resultFor({ label: 'Right', kind: 'bent' });
+    for (const time of [0, 33, 66, 99]) processHands(raised, time);
+    processHands(bent, 132);
+    expect(processHands(bent, 232).hands[0].phase).toBe('awaiting-release');
+    const resumed = processHands(raised, 265).hands[0];
+    expect(resumed.phase).toBe('casting');
+    expect(resumed.justStarted).toBe(false);
+  });
+
+  it('keeps hand identities when the detector changes array order', () => {
+    const pair = resultFor({ label: 'Left', kind: 'raised' }, { label: 'Right', kind: 'bent' });
+    pair.landmarks[0].forEach((point) => { point.x -= 0.2; });
+    pair.landmarks[1].forEach((point) => { point.x += 0.2; });
+    pair.worldLandmarks[0].forEach((point) => { point.x -= 0.2; });
+    pair.worldLandmarks[1].forEach((point) => { point.x += 0.2; });
+    for (const time of [0, 33, 66, 99]) processHands(pair, time);
+    const reordered = resultFor({ label: 'Right', kind: 'bent' }, { label: 'Left', kind: 'raised' });
+    reordered.landmarks[0].forEach((point) => { point.x += 0.2; });
+    reordered.landmarks[1].forEach((point) => { point.x -= 0.2; });
+    reordered.worldLandmarks[0].forEach((point) => { point.x += 0.2; });
+    reordered.worldLandmarks[1].forEach((point) => { point.x -= 0.2; });
+    const after = processHands(reordered, 132);
+    expect(after.hands[1].id).toBe('hand-1');
+    expect(after.hands[1].isCasting).toBe(true);
+  });
+
+  it('replays a complete pointing, drawing, and palm release into a triangle cast', () => {
+    const frames: CaptureFrame[] = [];
+    const add = (kind: 'raised' | 'open', x: number, y: number) => {
+      const hand = makeHand(kind).map((point) => ({ ...point, x: point.x + x - 0.42, y: point.y + y - 0.15 }));
+      frames.push({ elapsedMs: frames.length * 33, landmarks: [hand], worldLandmarks: [hand],
+        labels: ['Right'], poses: [] });
+    };
+    const vertices = [{ x: 0.3, y: 0.35 }, { x: 0.5, y: 0.12 },
+      { x: 0.7, y: 0.35 }, { x: 0.3, y: 0.35 }];
+    for (let i = 0; i < 4; i += 1) add('raised', vertices[0].x, vertices[0].y);
+    for (let edge = 0; edge < 3; edge += 1) {
+      for (let step = 1; step <= 12; step += 1) {
+        const t = step / 12;
+        add('raised', vertices[edge].x * (1 - t) + vertices[edge + 1].x * t,
+          vertices[edge].y * (1 - t) + vertices[edge + 1].y * t);
+      }
+    }
+    for (let i = 0; i < 4; i += 1) add('open', vertices[0].x, vertices[0].y);
+    const captureSession = new RecognitionCaptureSession();
+    for (const frame of frames) {
+      const results = {
+        landmarks: frame.landmarks, worldLandmarks: frame.worldLandmarks,
+        handedness: frame.labels.map((label) => [{ categoryName: label }]),
+      } as unknown as HandLandmarkerResult;
+      captureSession.recordFrame(results, processHands(results, frame.elapsedMs), frame.elapsedMs, 640, 640);
+    }
+    const capture = parseCapture(JSON.parse(JSON.stringify(captureSession.export())));
+    expect(capture.frames.some((frame) => frame.poses[0]?.justStarted)).toBe(true);
+    expect(capture.frames.some((frame) => frame.poses[0]?.justReleased)).toBe(true);
+    const casts = replayCapture(capture, new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES));
+    expect(casts).toHaveLength(1);
+    expect(casts[0].evaluation.status).toBe('matched');
+    expect(casts[0].evaluation.templateId).toBe('triangle');
+    expect(casts[0].stroke.rawPoints?.length).toBeGreaterThan(20);
   });
 });

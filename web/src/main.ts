@@ -1,8 +1,8 @@
 import './style.css';
-import { DrawingUtils, HandLandmarker } from '@mediapipe/tasks-vision';
+import { DrawingUtils, HandLandmarker, type HandLandmarkerResult } from '@mediapipe/tasks-vision';
 import { createHandTracker } from './vision/hand-tracker';
-import { processHands, resetHandProcessing } from './input/process-hands';
-import { IndexPathRecorder } from './drawing/path-recorder';
+import { processHands, resetHandProcessing, type HandProcessingResult } from './input/process-hands';
+import { IndexPathRecorder, type RecordedStroke } from './drawing/path-recorder';
 import { DEFAULT_SHAPE_TEMPLATES, ShapeEvaluator, type ShapeEvaluation } from './shapes/shape-evaluator';
 import {
   resolveSpell,
@@ -12,6 +12,15 @@ import {
 import { presentCastResult } from './ui/cast-result';
 import { AuthController } from './auth/auth-controller';
 import { DemoAuthService } from './auth/auth-service';
+
+interface DevDiagnostics {
+  onFrame(results: HandLandmarkerResult, processed: HandProcessingResult, timestampMs: number,
+    width: number, height: number, strokes: readonly RecordedStroke[]): void;
+  onCast(stroke: RecordedStroke, evaluation: ShapeEvaluation, timestampMs: number): void;
+  dispose(): void;
+}
+
+let diagnostics: DevDiagnostics | undefined;
 
 const video = document.querySelector<HTMLVideoElement>('#camera')!;
 const pathCanvas = document.querySelector<HTMLCanvasElement>('#path')!;
@@ -200,10 +209,12 @@ function trackFrame(activeSession: number): void {
       context.clearRect(0, 0, canvas.width, canvas.height);
 
       const processedHands = processHands(results, timestampMs);
-      const completedStrokes = pathRecorder.update(processedHands.hands, results.landmarks);
+      const completedStrokes = pathRecorder.update(processedHands.hands, results.landmarks, timestampMs, video.videoWidth / video.videoHeight);
+      diagnostics?.onFrame(results, processedHands, timestampMs, video.videoWidth, video.videoHeight, pathRecorder.getStrokes());
       if (completedStrokes.length > 0) {
         for (const stroke of completedStrokes) {
           const evaluation = shapeEvaluator.evaluate(stroke);
+          diagnostics?.onCast(stroke, evaluation, timestampMs);
           const spellPayload = showCastResult(evaluation);
           publishSpellCast(spellPayload);
         }
@@ -342,8 +353,24 @@ const authController = new AuthController(
 );
 void authController.initialize();
 
+if (import.meta.env.DEV) {
+  void import('./debug/dev-diagnostics').then(({ mountDiagnostics }) => {
+    diagnostics = mountDiagnostics({
+      shapeEvaluator,
+      stopCamera,
+      showCastResult,
+      resetStroke: () => {
+        resetHandProcessing();
+        pathRecorder.reset();
+        pathContext.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
+      },
+    });
+  });
+}
+
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
+    diagnostics?.dispose();
     stopCamera();
     void trackerLoading?.then((loaded) => loaded.close()).catch(() => {});
   });

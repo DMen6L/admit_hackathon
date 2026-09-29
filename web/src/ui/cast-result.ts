@@ -11,7 +11,7 @@ export interface CastResultPresentation {
 }
 
 export function presentCastResult(evaluation: ShapeEvaluation): CastResultPresentation {
-  const score = `${Math.round(evaluation.score * 100)}% confidence`;
+  const score = `${Math.round(evaluation.score * 100)}% match score`;
   if (evaluation.status === 'matched') {
     return {
       state: 'success',
@@ -42,7 +42,7 @@ export function presentCastResult(evaluation: ShapeEvaluation): CastResultPresen
     state: 'failure',
     icon: '×',
     title: 'CAST FAILED',
-    detail: `No spell matched · ${score}`,
+    detail: 'No spell matched',
     correction: evaluation.correction ?? 'Try a broader, clearer shape',
   };
 }

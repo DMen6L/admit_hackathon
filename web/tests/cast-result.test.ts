@@ -43,7 +43,9 @@ describe('cast result presentation', () => {
   });
 
   it('distinguishes failure from cancellation', () => {
-    expect(presentCastResult(evaluation('unrecognized')).state).toBe('failure');
+    const failure = presentCastResult(evaluation('unrecognized'));
+    expect(failure.state).toBe('failure');
+    expect(failure.detail).toBe('No spell matched');
     expect(presentCastResult(evaluation('insufficient')).state).toBe('cancelled');
   });
 });

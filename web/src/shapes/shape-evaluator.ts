@@ -18,6 +18,8 @@ export interface ShapeTemplate {
   direction?: ShapeDirection;
   closure?: ClosurePolicy;
   allowRotation?: boolean;
+  allowReflection?: boolean;
+  allowReverse?: boolean;
   aspectRatio?: { min: number; max: number };
 }
 
@@ -45,6 +47,7 @@ export interface ShapeEvaluation {
   correction?: string;
   ambiguous: boolean;
   diagnostics: ShapeDiagnostics;
+  candidates?: Array<{ templateId: string; score: number; evidence: boolean; outlineError: number; failed: string[] }>;
 }
 
 interface ShapeFeatures {
@@ -61,6 +64,8 @@ interface ShapeFeatures {
   directionAngle: number;
   radialError: number;
   coverageError: number;
+  fillRatio: number;
+  straightRunFraction: number;
 }
 
 interface Candidate {
@@ -69,7 +74,9 @@ interface Candidate {
   score: number;
   diagnostics: ShapeDiagnostics;
   evidence: boolean;
+  nearEvidence: boolean;
   closureAmbiguous: boolean;
+  straightRunFraction: number;
 }
 
 const RESAMPLE_POINTS = 24;
@@ -82,6 +89,8 @@ const OPEN_INTENT_THRESHOLD = 0.55;
 const MATCH_THRESHOLD = 0.60;
 const NEAR_MISS_THRESHOLD = 0.40;
 const AMBIGUITY_MARGIN = 0.08;
+const POLYGON_MATCH_OUTLINE_ERROR = 0.18;
+const POLYGON_MATCH_CLOSURE_ERROR = 0.20;
 const ZERO_DIAGNOSTICS: ShapeDiagnostics = {
   pointError: 1,
   directionError: 1,
@@ -200,6 +209,51 @@ function normalize(points: readonly PathPoint[]): { points: PathPoint[]; width: 
   };
 }
 
+function fillRatio(points: readonly PathPoint[]): number {
+  if (points.length < 3) return 0;
+  let area = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const next = points[(index + 1) % points.length];
+    area += points[index].x * next.y - next.x * points[index].y;
+  }
+  area = Math.abs(area) / 2;
+  let smallestBox = Infinity;
+  for (let step = 0; step < 36; step += 1) {
+    const angle = Math.PI * step / 36;
+    const cosine = Math.cos(angle);
+    const sine = Math.sin(angle);
+    const rotated = points.map((point) => ({
+      x: point.x * cosine - point.y * sine,
+      y: point.x * sine + point.y * cosine,
+    }));
+    const xs = rotated.map((point) => point.x);
+    const ys = rotated.map((point) => point.y);
+    smallestBox = Math.min(smallestBox,
+      (Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys)));
+  }
+  return smallestBox <= Number.EPSILON ? 0 : area / smallestBox;
+}
+
+function straightRunFraction(points: readonly PathPoint[]): number {
+  const total = pathLength(points);
+  if (points.length < 3 || total <= Number.EPSILON) return 0;
+  let longest = 0;
+  for (let start = 0; start < points.length - 2; start += 1) {
+    let runLength = distance(points[start], points[start + 1]);
+    for (let end = start + 2; end < points.length; end += 1) {
+      runLength += distance(points[end - 1], points[end]);
+      const chord = distance(points[start], points[end]);
+      if (chord <= 0.05) continue;
+      let deviation = 0;
+      for (let middle = start + 1; middle < end; middle += 1) {
+        deviation = Math.max(deviation, perpendicularDistance(points[middle], points[start], points[end]));
+      }
+      if (deviation <= 0.025) longest = Math.max(longest, runLength / total);
+    }
+  }
+  return longest;
+}
+
 function angleBetween(a: PathPoint, b: PathPoint): number {
   const aLength = Math.hypot(a.x, a.y);
   const bLength = Math.hypot(b.x, b.y);
@@ -295,7 +349,42 @@ function extractFeatures(points: readonly PathPoint[]): ShapeFeatures {
     directionAngle: direction,
     radialError,
     coverageError,
+    fillRatio: fillRatio(resampled),
+    straightRunFraction: straightRunFraction(resampled),
   };
+}
+
+/** Compare ordered, equally spaced outlines after allowed transformations. */
+function alignedOutlineError(attempt: ShapeFeatures, template: ShapeFeatures, policy: ShapeTemplate): number {
+  const closed = topologyFor(policy) === 'closed';
+  const a = closed ? attempt.points.slice(0, -1) : attempt.points;
+  const b = closed ? template.points.slice(0, -1) : template.points;
+  const n = Math.min(a.length, b.length);
+  if (n === 0) return 1;
+  let best = Infinity;
+  const angles = policy.allowRotation ? 24 : 1;
+  for (const reflected of policy.allowReflection ? [false, true] : [false]) {
+    for (const reversed of policy.allowReverse || closed ? [false, true] : [false]) {
+      for (let turn = 0; turn < angles; turn += 1) {
+        const theta = 2 * Math.PI * turn / angles;
+        const c = Math.cos(theta);
+        const s = Math.sin(theta);
+        const rotated = a.map((p) => {
+          const x = reflected ? -p.x : p.x;
+          return { x: x * c - p.y * s, y: x * s + p.y * c };
+        });
+        for (let shift = 0; shift < (closed ? n : 1); shift += 1) {
+          let error = 0;
+          for (let i = 0; i < n; i += 1) {
+            const index = reversed ? (shift - i + n) % n : (shift + i) % n;
+            error += distance(rotated[index], b[i]);
+          }
+          best = Math.min(best, error / n);
+        }
+      }
+    }
+  }
+  return best;
 }
 
 function directionError(attempt: ShapeFeatures, template: ShapeTemplate): number {
@@ -321,7 +410,15 @@ function angleDirectionError(attempt: ShapeFeatures, template: ShapeFeatures): n
   return clamp(mismatches / length);
 }
 
+function allowedTurnError(attempt: ShapeFeatures, template: ShapeFeatures, policy: ShapeTemplate): number {
+  const direct = angleDirectionError(attempt, template);
+  if (!policy.allowReflection) return direct;
+  const reflected = { ...attempt, turnSigns: attempt.turnSigns.map((sign) => -sign) };
+  return Math.min(direct, angleDirectionError(reflected, template));
+}
+
 function aspectError(attempt: ShapeFeatures, template: ShapeTemplate, templateFeatures: ShapeFeatures): number {
+  if (template.allowRotation && !template.aspectRatio) return 0;
   if (template.aspectRatio) {
     if (attempt.aspectRatio >= template.aspectRatio.min && attempt.aspectRatio <= template.aspectRatio.max) return 0;
     const distanceOutside = attempt.aspectRatio < template.aspectRatio.min
@@ -336,6 +433,7 @@ function scoreCandidate(attempt: ShapeFeatures, template: ShapeTemplate, templat
   const topology = topologyFor(template);
   const closure = closureFor(template);
   const geometry = geometryFor(template);
+  const triangleRules = geometry === 'polygon' && topology === 'closed' && (template.expectedCorners ?? templateFeatures.corners) === 3;
   const topologyFit = topology === 'either'
     ? 1
     : topology === 'closed' ? attempt.closedIntentScore : attempt.openIntentScore;
@@ -349,7 +447,7 @@ function scoreCandidate(attempt: ShapeFeatures, template: ShapeTemplate, templat
     : clamp((cornerDifference - cornerTolerance) / Math.max(expectedCorners, 2));
   const aspectRatioError = aspectError(attempt, template, templateFeatures);
   const directionErrorValue = directionError(attempt, template);
-  const turnError = angleDirectionError(attempt, templateFeatures);
+  const turnError = allowedTurnError(attempt, templateFeatures, template);
   const closureError = attempt.closureError;
   const closureErrorValue = closure === 'ignored'
     ? 0
@@ -357,10 +455,9 @@ function scoreCandidate(attempt: ShapeFeatures, template: ShapeTemplate, templat
   const endpointError = distance(attempt.points[attempt.points.length - 1], templateFeatures.points[templateFeatures.points.length - 1]);
   const lengthRatio = templateFeatures.length <= Number.EPSILON ? 0 : attempt.length / templateFeatures.length;
   const lengthError = lengthRatio <= Number.EPSILON ? 1 : clamp(Math.abs(Math.log(lengthRatio)) / Math.log(2));
-  const pointError = attempt.points.reduce((total, point, index) => total + distance(point, templateFeatures.points[index]), 0)
-    / attempt.points.length;
+  const outlineError = alignedOutlineError(attempt, templateFeatures, template);
   const diagnostics: ShapeDiagnostics = {
-    pointError,
+    pointError: outlineError,
     directionError: directionErrorValue,
     endpointError,
     closureError,
@@ -391,9 +488,11 @@ function scoreCandidate(attempt: ShapeFeatures, template: ShapeTemplate, templat
         + (1 - lengthError) * 0.05,
     );
   const topologyMustMatch = topology === 'open' && attempt.openIntentScore < 1;
+  const outlineFit = 1 - clamp(outlineError / 0.32);
+  const combinedScore = geometry === 'circle' ? baseScore * 0.85 + outlineFit * 0.15 : baseScore * 0.70 + outlineFit * 0.30;
   const score = topologyMustMatch || (strictDirection && directionErrorValue > 0.55)
-    ? Math.min(baseScore, NEAR_MISS_THRESHOLD)
-    : baseScore;
+    ? Math.min(combinedScore, NEAR_MISS_THRESHOLD)
+    : combinedScore;
   const maximumClosedClosureError = closure === 'required'
     ? CLOSED_INTENT_THRESHOLD
     : OPEN_INTENT_THRESHOLD;
@@ -406,33 +505,49 @@ function scoreCandidate(attempt: ShapeFeatures, template: ShapeTemplate, templat
   const polylineGeometryCompatible = geometry !== 'polyline'
     || expectedCorners === 0
     || (attempt.corners >= expectedCorners && turnError <= 0.25);
-  const evidence = geometry === 'circle'
+  const geometryEvidence = geometry === 'circle'
     ? closureCompatible && circleGeometryCompatible && attempt.coverageError <= 0.35
-    : closureCompatible && cornerError <= 0.25 && polylineGeometryCompatible;
+      && attempt.straightRunFraction <= 0.20
+    : triangleRules
+      ? closureCompatible && attempt.fillRatio <= 0.66 && cornerError <= 0.35
+        && (cornerError <= 0.25 || outlineError <= POLYGON_MATCH_OUTLINE_ERROR)
+      : closureCompatible && cornerError <= 0.25 && polylineGeometryCompatible;
+  const matchFit = geometry === 'circle' ? true
+    : triangleRules
+      ? outlineError <= POLYGON_MATCH_OUTLINE_ERROR && attempt.closureError <= POLYGON_MATCH_CLOSURE_ERROR
+      : outlineError <= 0.26;
+  const evidence = geometryEvidence && matchFit;
   return {
     template,
     features: templateFeatures,
     score,
     diagnostics,
     evidence,
+    nearEvidence: geometry === 'circle'
+      ? closureCompatible && attempt.coverageError <= 0.35
+        && attempt.radialError <= 0.55 && attempt.corners >= 5
+      : geometryEvidence,
     closureAmbiguous: attempt.closureAmbiguous,
+    straightRunFraction: attempt.straightRunFraction,
   };
 }
 
 function correctionFor(candidate: Candidate): string {
   const { diagnostics, template } = candidate;
-  if (diagnostics.topologyError > 0) {
+  if (diagnostics.topologyError > 0.35) {
     return topologyFor(template) === 'closed' ? 'Bring the end back near the start' : 'Leave the shape open';
   }
+  if (geometryFor(template) === 'circle' && candidate.straightRunFraction > 0.20) return 'Round off the straight sections';
+  if (geometryFor(template) === 'circle' && diagnostics.radialError > 0.35) return 'Make the loop rounder';
+  if (geometryFor(template) === 'circle' && diagnostics.coverageError > 0.35) return 'Complete more of the circular loop';
   if (diagnostics.cornerError > 0 || diagnostics.turnError > 0) {
     const corners = template.expectedCorners ?? candidate.features.corners;
     return `Use about ${corners} clear turn${corners === 1 ? '' : 's'}`;
   }
-  if (geometryFor(template) === 'circle' && diagnostics.radialError > 0.35) return 'Make the loop rounder';
-  if (geometryFor(template) === 'circle' && diagnostics.coverageError > 0.35) return 'Complete more of the circular loop';
   if (diagnostics.closureError > 0.25 && closureFor(template) !== 'ignored') return 'Finish closer to where you started';
   if (diagnostics.aspectRatioError > 0.35) return 'Make the shape wider or taller';
   if (diagnostics.directionError > 0.35) return 'Start the gesture in the expected direction';
+  if (diagnostics.pointError > 0.18) return 'Follow the outline more closely';
   return 'Follow the broad outline more closely';
 }
 
@@ -464,22 +579,61 @@ export class ShapeEvaluator {
       return emptyEvaluation(cleaned.length < 4 || rawLength < MIN_PATH_LENGTH ? 'insufficient' : 'unrecognized');
     }
 
-    const attempt = extractFeatures(cleaned);
+    const aspectRatio = 'points' in stroke ? stroke.aspectRatio ?? 1 : 1;
+    const corrected = cleaned.map((point) => ({ x: point.x * aspectRatio, y: point.y }));
+    const attempt = extractFeatures(corrected);
     const candidates = this.templates.map((template) => {
       const templateFeatures = extractFeatures(deduplicate(template.points));
       return scoreCandidate(attempt, template, templateFeatures);
     }).sort((a, b) => b.score - a.score);
+    const summaries = candidates.map((candidate) => {
+      const { template, diagnostics } = candidate;
+      const geometry = geometryFor(template);
+      const topology = topologyFor(template);
+      const triangleRules = geometry === 'polygon' && topology === 'closed'
+        && (template.expectedCorners ?? candidate.features.corners) === 3;
+      const closureLimit = closureFor(template) === 'required' ? CLOSED_INTENT_THRESHOLD : OPEN_INTENT_THRESHOLD;
+      const matchClosureLimit = triangleRules ? POLYGON_MATCH_CLOSURE_ERROR : closureLimit;
+      const closureFailed = topology === 'closed' ? diagnostics.closureError > matchClosureLimit
+        : topology === 'open' && diagnostics.closureError < OPEN_INTENT_THRESHOLD;
+      const circleFailed = geometry === 'circle' && !(diagnostics.radialError <= 0.30
+        || (diagnostics.radialError <= 0.45 && attempt.corners >= 5));
+      return {
+        templateId: template.id,
+        score: candidate.score,
+        evidence: candidate.evidence,
+        outlineError: diagnostics.pointError,
+        failed: [
+          closureFailed ? 'topology' : '',
+          triangleRules && diagnostics.cornerError > 0.35 ? 'corners' : '',
+          triangleRules && attempt.fillRatio > 0.66 ? 'filled area' : '',
+          !triangleRules && geometry !== 'circle' && diagnostics.cornerError > 0.25 ? 'corners' : '',
+          triangleRules && diagnostics.pointError > POLYGON_MATCH_OUTLINE_ERROR ? 'outline' : '',
+          !triangleRules && geometry !== 'circle' && diagnostics.pointError > 0.26 ? 'outline' : '',
+          circleFailed ? 'roundness' : '',
+          geometry === 'circle' && attempt.straightRunFraction > 0.20 ? 'straight sections' : '',
+          geometry === 'circle' && diagnostics.coverageError > 0.35 ? 'loop coverage' : '',
+          geometry === 'polyline' && (template.expectedCorners ?? 0) > 0 && diagnostics.turnError > 0.25 ? 'turn order' : '',
+          template.direction && template.direction !== 'any' && !template.allowRotation
+            && diagnostics.directionError > 0.55 ? 'direction' : '',
+        ].filter(Boolean),
+      };
+    });
     const evidencedCandidates = candidates.filter((candidate) => candidate.evidence);
-    if (evidencedCandidates.length === 0) return emptyEvaluation('unrecognized');
+    const coachingCandidates = candidates.filter((candidate) => candidate.nearEvidence && candidate.score >= NEAR_MISS_THRESHOLD);
+    if (evidencedCandidates.length === 0 && coachingCandidates.length === 0) {
+      return { ...emptyEvaluation('unrecognized'), candidates: summaries };
+    }
 
-    const best = evidencedCandidates[0];
-    const second = evidencedCandidates[1];
+    const best = evidencedCandidates[0] ?? coachingCandidates[0];
+    const second = (evidencedCandidates.length ? evidencedCandidates : coachingCandidates)
+      .find((candidate) => candidate.template.id !== best.template.id);
     const ambiguous = Boolean(second && best.score - second.score < AMBIGUITY_MARGIN);
     const convincing = best.evidence
       && best.score >= MATCH_THRESHOLD
       && !ambiguous
       && !best.closureAmbiguous;
-    const nearMiss = best.evidence && best.score >= NEAR_MISS_THRESHOLD && !ambiguous;
+    const nearMiss = best.nearEvidence && best.score >= NEAR_MISS_THRESHOLD && !ambiguous;
     const status: ShapeEvaluationStatus = convincing
       ? 'matched'
       : nearMiss
@@ -490,11 +644,12 @@ export class ShapeEvaluator {
       templateId: status === 'unrecognized' ? undefined : best.template.id,
       templateName: status === 'unrecognized' ? undefined : best.template.name,
       score: best.score,
-      correction: status === 'matched' ? undefined : status === 'near-miss'
-        ? correctionFor(best)
-        : 'No supported shape matched',
+      correction: status === 'matched' ? undefined : ambiguous
+        ? 'Several runes look possible; draw a clearer outline'
+        : status === 'near-miss' ? correctionFor(best) : 'No supported shape matched',
       ambiguous,
       diagnostics: best.diagnostics,
+      candidates: summaries,
     };
   }
 }
@@ -544,6 +699,8 @@ export const DEFAULT_SHAPE_TEMPLATES: ShapeTemplate[] = [
     closure: 'ignored',
     direction: 'any',
     allowRotation: true,
+    allowReflection: true,
+    allowReverse: true,
     points: [
       { x: 0.2, y: 0.7 },
       { x: 0.4, y: 0.25 },

@@ -1,0 +1,5 @@
+.diagnostics { margin: 0 18px 18px; padding: 12px; border-top: 1px solid #506174; }
+.diagnostics summary { cursor: pointer; font-weight: 650; }
+.diagnostics .buttons { margin: 14px 0; }
+.diagnostics #debug-path { position: static; display: block; width: min(320px, 100%); height: auto; transform: none; background: #080d14; border-radius: 8px; }
+.diagnostics pre { overflow: auto; white-space: pre-wrap; font-size: 0.8rem; }
