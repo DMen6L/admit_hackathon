@@ -19,7 +19,7 @@ services:
     build: .
     environment:
       MAGIC_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-magic}:${POSTGRES_PASSWORD:-magic}@postgres:5432/${POSTGRES_DB:-magic}
-      MAGIC_JWT_SECRET: ${MAGIC_JWT_SECRET:-development-only-change-me}
+      MAGIC_JWT_SECRET: ${MAGIC_JWT_SECRET:-development-only-change-this-secret}
       MAGIC_CORS_ORIGINS: ${MAGIC_CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
     ports:
       - "${API_PORT:-8000}:8000"

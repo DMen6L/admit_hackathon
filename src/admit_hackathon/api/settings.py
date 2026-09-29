@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://magic:magic@localhost:5432/magic"
-    jwt_secret: str = "development-only-change-me"
+    jwt_secret: str = "development-only-change-this-secret"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 15
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"

@@ -13,7 +13,7 @@ def test_normalize_login_is_case_insensitive() -> None:
     assert normalize_login("  Arcane.Wanderer ") == "arcane.wanderer"
 
 
-@pytest.mark.parametrize("login", ["ab", "has space", "UPPER", "bad/login", ""])
+@pytest.mark.parametrize("login", ["ab", "has space", "bad/login", ""])
 def test_normalize_login_rejects_invalid_values(login: str) -> None:
     with pytest.raises(HTTPException):
         normalize_login(login)
