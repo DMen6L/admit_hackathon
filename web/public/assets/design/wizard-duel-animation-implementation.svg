@@ -1,0 +1,799 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="1650" viewBox="0 0 2200 1650" shape-rendering="crispEdges" role="img" aria-labelledby="animation-guide-title animation-guide-description">
+<title id="animation-guide-title">Wizard Duel sprite and effects implementation guide</title>
+<desc id="animation-guide-description">Animation frames, event timing, collision guidance, and export naming for Berik and Alisher.</desc>
+<rect width="2200" height="1650" fill="#070B12"/>
+<text x="42" y="46" fill="#F8E7A8" font-size="30" font-family="Pixelify Sans, monospace" font-weight="bold" text-anchor="start">WIZARD DUEL — SPRITES &amp; VFX IMPLEMENTATION MASTER</text>
+<text x="44" y="76" fill="#8C9CB3" font-size="13" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">Animation strips • event frames • hitboxes • VFX timing • export naming • browser implementation notes</text>
+<line x1="42" y1="98" x2="2158" y2="98" stroke="#263B55" stroke-width="2" opacity="1"/>
+<rect x="42" y="124" width="190" height="32" rx="6" fill="#111C2B" stroke="#2E6CF6" stroke-width="1"/>
+<text x="54" y="145" fill="#F8E7A8" font-size="12" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">BERIK ANIMATIONS</text>
+<rect x="42" y="166" width="1360" height="210" rx="16" fill="#0E1622" stroke="#2E6CF6" stroke-width="2"/>
+<text x="60" y="194" fill="#F8E7A8" font-size="16" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">IDLE LOOP — 6 frames / 720 ms</text>
+<rect x="72" y="214" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(115,226) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="4" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="28" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="156" y="356" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F1 · 120 ms</text>
+<rect x="272" y="214" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(315,226) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="4" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="28" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="356" y="356" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F2 · 120 ms</text>
+<rect x="472" y="214" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(515,226) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="4" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="28" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="556" y="356" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F3 · 120 ms</text>
+<rect x="672" y="214" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(715,226) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="4" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="28" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="756" y="356" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F4 · 120 ms</text>
+<rect x="872" y="214" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(915,226) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="4" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="28" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="956" y="356" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F5 · 120 ms</text>
+<rect x="1072" y="214" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(1115,226) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="4" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="28" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="1156" y="356" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F6 · 120 ms</text>
+<rect x="42" y="390" width="1360" height="210" rx="16" fill="#0E1622" stroke="#2E6CF6" stroke-width="2"/>
+<text x="60" y="418" fill="#F8E7A8" font-size="16" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">CAST FIREBALL — 6 frames / 480 ms</text>
+<rect x="72" y="438" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(115,450) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="4" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="28" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="156" y="580" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F1 · 80 ms</text>
+<rect x="272" y="438" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(315,450) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="5" y="34" width="12" height="5" fill="#2E6CF6"/>
+<rect x="-3" y="32" width="10" height="5" fill="#2E6CF6"/>
+<rect x="27" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="37" y="33" width="9" height="4" fill="#F1C75B"/>
+<rect x="46" y="25" width="2" height="22" fill="#67D8FF"/>
+<rect x="36" y="35" width="22" height="2" fill="#67D8FF"/>
+<rect x="40" y="29" width="14" height="14" fill="none" stroke="#67D8FF" stroke-width="2"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="356" y="580" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F2 · 80 ms</text>
+<rect x="472" y="438" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(515,450) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="5" y="34" width="12" height="5" fill="#2E6CF6"/>
+<rect x="-3" y="32" width="10" height="5" fill="#2E6CF6"/>
+<rect x="27" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="37" y="33" width="9" height="4" fill="#F1C75B"/>
+<rect x="46" y="25" width="2" height="22" fill="#67D8FF"/>
+<rect x="36" y="35" width="22" height="2" fill="#67D8FF"/>
+<rect x="40" y="29" width="14" height="14" fill="none" stroke="#67D8FF" stroke-width="2"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="556" y="580" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F3 · 80 ms</text>
+<rect x="672" y="438" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(715,450) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="5" y="34" width="12" height="5" fill="#2E6CF6"/>
+<rect x="-3" y="32" width="10" height="5" fill="#2E6CF6"/>
+<rect x="27" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="37" y="33" width="9" height="4" fill="#F1C75B"/>
+<rect x="46" y="25" width="2" height="22" fill="#67D8FF"/>
+<rect x="36" y="35" width="22" height="2" fill="#67D8FF"/>
+<rect x="40" y="29" width="14" height="14" fill="none" stroke="#67D8FF" stroke-width="2"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="756" y="580" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F4 · 80 ms</text>
+<rect x="872" y="438" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(915,450) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="5" y="34" width="12" height="5" fill="#2E6CF6"/>
+<rect x="-3" y="32" width="10" height="5" fill="#2E6CF6"/>
+<rect x="27" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="37" y="33" width="9" height="4" fill="#F1C75B"/>
+<rect x="46" y="25" width="2" height="22" fill="#67D8FF"/>
+<rect x="36" y="35" width="22" height="2" fill="#67D8FF"/>
+<rect x="40" y="29" width="14" height="14" fill="none" stroke="#67D8FF" stroke-width="2"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="956" y="580" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F5 · 80 ms</text>
+<rect x="1072" y="438" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(1115,450) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="4" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="28" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="1156" y="580" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F6 · 80 ms</text>
+<rect x="42" y="614" width="1360" height="210" rx="16" fill="#0E1622" stroke="#2E6CF6" stroke-width="2"/>
+<text x="60" y="642" fill="#F8E7A8" font-size="16" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">DODGE — 6 frames / 360 ms</text>
+<rect x="72" y="662" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(115,674) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="4" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="28" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="156" y="804" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F1 · 60 ms</text>
+<rect x="272" y="662" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(315,674) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="0" y="38" width="12" height="4" fill="#2E6CF6"/>
+<rect x="27" y="32" width="10" height="4" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="356" y="804" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F2 · 60 ms</text>
+<rect x="472" y="662" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(515,674) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="0" y="38" width="12" height="4" fill="#2E6CF6"/>
+<rect x="27" y="32" width="10" height="4" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="556" y="804" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F3 · 60 ms</text>
+<rect x="672" y="662" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(715,674) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="0" y="38" width="12" height="4" fill="#2E6CF6"/>
+<rect x="27" y="32" width="10" height="4" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="756" y="804" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F4 · 60 ms</text>
+<rect x="872" y="662" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(915,674) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="0" y="38" width="12" height="4" fill="#2E6CF6"/>
+<rect x="27" y="32" width="10" height="4" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="956" y="804" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F5 · 60 ms</text>
+<rect x="1072" y="662" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(1115,674) scale(1.65)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="4" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="28" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<text x="1156" y="804" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F6 · 60 ms</text>
+<rect x="1430" y="166" width="728" height="658" rx="16" fill="#0E1622" stroke="#2E6CF6" stroke-width="2"/>
+<text x="1448" y="194" fill="#F8E7A8" font-size="16" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">BERIK TIMING / COLLISION</text>
+<text x="1454" y="214" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Idle</text>
+<text x="1618" y="214" fill="#67D8FF" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F1–F6</text>
+<text x="1708" y="214" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">loop, no gameplay state change</text>
+<text x="1454" y="258" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Fireball anticipation</text>
+<text x="1618" y="258" fill="#67D8FF" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F1–F2</text>
+<text x="1708" y="258" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">input locked, show rune charge</text>
+<text x="1454" y="302" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Fireball release</text>
+<text x="1618" y="302" fill="#67D8FF" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F4</text>
+<text x="1708" y="302" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">spawn projectile at cast-hand socket</text>
+<text x="1454" y="346" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Cast recovery</text>
+<text x="1618" y="346" fill="#67D8FF" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F5–F6</text>
+<text x="1708" y="346" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">player vulnerable, no second cast</text>
+<text x="1454" y="390" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Dodge startup</text>
+<text x="1618" y="390" fill="#67D8FF" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F1</text>
+<text x="1708" y="390" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">no invulnerability</text>
+<text x="1454" y="434" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Dodge active</text>
+<text x="1618" y="434" fill="#67D8FF" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F2–F4</text>
+<text x="1708" y="434" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">i-frames active, move avatar 42 px</text>
+<text x="1454" y="478" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Dodge recovery</text>
+<text x="1618" y="478" fill="#67D8FF" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F5–F6</text>
+<text x="1708" y="478" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">return to origin; i-frames off</text>
+<text x="1454" y="556" fill="#F8E7A8" font-size="12" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">HURTBOX</text>
+<rect x="1470" y="584" width="170" height="190" fill="#0A111C" stroke="#365C8E" stroke-width="2"/>
+<g transform="translate(1510,600) scale(2.2)">
+<rect x="5" y="68" width="30" height="3" fill="#020408" opacity=".7"/>
+<polygon points="18,2 29,17 8,17" fill="#163A8C"/>
+<rect x="5" y="15" width="28" height="5" fill="#2E6CF6"/>
+<rect x="17" y="4" width="5" height="3" fill="#F1C75B"/>
+<rect x="9" y="18" width="20" height="2" fill="#F1C75B"/>
+<rect x="14" y="19" width="10" height="8" fill="#D6B18C"/>
+<rect x="13" y="25" width="12" height="9" fill="#EEEAE2"/>
+<rect x="15" y="33" width="8" height="5" fill="#D8D5D0"/>
+<polygon points="10,31 29,31 34,64 5,64" fill="#5B43C8"/>
+<rect x="18" y="31" width="3" height="33" fill="#F1C75B"/>
+<rect x="7" y="63" width="25" height="3" fill="#F1C75B"/>
+<polygon points="8,32 3,38 5,61 10,55" fill="#163A8C"/>
+<rect x="4" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="28" y="34" width="11" height="5" fill="#2E6CF6"/>
+<rect x="7" y="66" width="9" height="4" fill="#171B25"/>
+<rect x="23" y="66" width="9" height="4" fill="#171B25"/>
+</g>
+<rect x="1536" y="640" width="52" height="100" fill="none" stroke="#1EE88A" stroke-width="3"/>
+<text x="1660" y="618" fill="#1EE88A" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Green = hurtbox</text>
+<text x="1660" y="642" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">Hat and cloak excluded.</text>
+<text x="1660" y="664" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">Origin = feet center.</text>
+<text x="1660" y="686" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">Hand socket = VFX anchor.</text>
+<rect x="42" y="850" width="210" height="32" rx="6" fill="#111C2B" stroke="#D12638" stroke-width="1"/>
+<text x="54" y="871" fill="#F8E7A8" font-size="12" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">ALISHER ANIMATIONS</text>
+<rect x="42" y="892" width="1360" height="210" rx="16" fill="#0E1622" stroke="#D12638" stroke-width="2"/>
+<text x="60" y="920" fill="#F8E7A8" font-size="16" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">IDLE LOOP — 6 frames / 660 ms</text>
+<rect x="72" y="940" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(115,952) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="12" height="5" fill="#5B1119"/>
+<rect x="29" y="34" width="11" height="5" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="156" y="1082" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F1 · 110 ms</text>
+<rect x="272" y="940" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(315,952) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="12" height="5" fill="#5B1119"/>
+<rect x="29" y="34" width="11" height="5" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="356" y="1082" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F2 · 110 ms</text>
+<rect x="472" y="940" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(515,952) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="12" height="5" fill="#5B1119"/>
+<rect x="29" y="34" width="11" height="5" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="556" y="1082" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F3 · 110 ms</text>
+<rect x="672" y="940" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(715,952) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="12" height="5" fill="#5B1119"/>
+<rect x="29" y="34" width="11" height="5" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="756" y="1082" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F4 · 110 ms</text>
+<rect x="872" y="940" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(915,952) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="12" height="5" fill="#5B1119"/>
+<rect x="29" y="34" width="11" height="5" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="956" y="1082" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F5 · 110 ms</text>
+<rect x="1072" y="940" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(1115,952) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="12" height="5" fill="#5B1119"/>
+<rect x="29" y="34" width="11" height="5" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="1156" y="1082" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F6 · 110 ms</text>
+<rect x="42" y="1116" width="1360" height="210" rx="16" fill="#0E1622" stroke="#D12638" stroke-width="2"/>
+<text x="60" y="1144" fill="#F8E7A8" font-size="16" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">CAST FIREBALL — 6 frames / 420 ms</text>
+<rect x="72" y="1164" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(115,1176) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="12" height="5" fill="#5B1119"/>
+<rect x="29" y="34" width="11" height="5" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="156" y="1306" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F1 · 70 ms</text>
+<rect x="272" y="1164" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(315,1176) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="13" height="5" fill="#5B1119"/>
+<rect x="28" y="33" width="12" height="5" fill="#5B1119"/>
+<rect x="39" y="32" width="7" height="5" fill="#F1C75B"/>
+<rect x="46" y="28" width="10" height="10" fill="#FF6A2B"/>
+<rect x="49" y="24" width="5" height="7" fill="#F8E7A8"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="356" y="1306" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F2 · 70 ms</text>
+<rect x="472" y="1164" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(515,1176) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="13" height="5" fill="#5B1119"/>
+<rect x="28" y="33" width="12" height="5" fill="#5B1119"/>
+<rect x="39" y="32" width="7" height="5" fill="#F1C75B"/>
+<rect x="46" y="28" width="10" height="10" fill="#FF6A2B"/>
+<rect x="49" y="24" width="5" height="7" fill="#F8E7A8"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="556" y="1306" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F3 · 70 ms</text>
+<rect x="672" y="1164" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(715,1176) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="13" height="5" fill="#5B1119"/>
+<rect x="28" y="33" width="12" height="5" fill="#5B1119"/>
+<rect x="39" y="32" width="7" height="5" fill="#F1C75B"/>
+<rect x="46" y="28" width="10" height="10" fill="#FF6A2B"/>
+<rect x="49" y="24" width="5" height="7" fill="#F8E7A8"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="756" y="1306" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F4 · 70 ms</text>
+<rect x="872" y="1164" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(915,1176) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="13" height="5" fill="#5B1119"/>
+<rect x="28" y="33" width="12" height="5" fill="#5B1119"/>
+<rect x="39" y="32" width="7" height="5" fill="#F1C75B"/>
+<rect x="46" y="28" width="10" height="10" fill="#FF6A2B"/>
+<rect x="49" y="24" width="5" height="7" fill="#F8E7A8"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="956" y="1306" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F5 · 70 ms</text>
+<rect x="1072" y="1164" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(1115,1176) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="12" height="5" fill="#5B1119"/>
+<rect x="29" y="34" width="11" height="5" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="1156" y="1306" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F6 · 70 ms</text>
+<rect x="42" y="1340" width="1360" height="210" rx="16" fill="#0E1622" stroke="#D12638" stroke-width="2"/>
+<text x="60" y="1368" fill="#F8E7A8" font-size="16" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">DODGE — 6 frames / 300 ms</text>
+<rect x="72" y="1388" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(115,1400) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="12" height="5" fill="#5B1119"/>
+<rect x="29" y="34" width="11" height="5" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="156" y="1530" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F1 · 50 ms</text>
+<rect x="272" y="1388" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(315,1400) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="-1" y="39" width="14" height="4" fill="#5B1119"/>
+<rect x="27" y="31" width="10" height="4" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="356" y="1530" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F2 · 50 ms</text>
+<rect x="472" y="1388" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(515,1400) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="-1" y="39" width="14" height="4" fill="#5B1119"/>
+<rect x="27" y="31" width="10" height="4" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="556" y="1530" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F3 · 50 ms</text>
+<rect x="672" y="1388" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(715,1400) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="-1" y="39" width="14" height="4" fill="#5B1119"/>
+<rect x="27" y="31" width="10" height="4" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="756" y="1530" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F4 · 50 ms</text>
+<rect x="872" y="1388" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(915,1400) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="-1" y="39" width="14" height="4" fill="#5B1119"/>
+<rect x="27" y="31" width="10" height="4" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="956" y="1530" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F5 · 50 ms</text>
+<rect x="1072" y="1388" width="168" height="126" rx="8" fill="#111C2B" stroke="#263B55" stroke-width="1"/>
+<g transform="translate(1115,1400) scale(1.65)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="12" height="5" fill="#5B1119"/>
+<rect x="29" y="34" width="11" height="5" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<text x="1156" y="1530" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="middle">F6 · 50 ms</text>
+<rect x="1430" y="892" width="728" height="658" rx="16" fill="#0E1622" stroke="#D12638" stroke-width="2"/>
+<text x="1448" y="920" fill="#F8E7A8" font-size="16" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">ALISHER TIMING / COLLISION</text>
+<text x="1454" y="940" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Idle</text>
+<text x="1618" y="940" fill="#FF6A2B" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F1–F6</text>
+<text x="1708" y="940" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">faster cloak pulse than Berik</text>
+<text x="1454" y="984" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Fireball anticipation</text>
+<text x="1618" y="984" fill="#FF6A2B" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F1–F2</text>
+<text x="1708" y="984" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">short tell; red hand ember appears</text>
+<text x="1454" y="1028" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Fireball release</text>
+<text x="1618" y="1028" fill="#FF6A2B" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F3</text>
+<text x="1708" y="1028" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">spawn projectile earlier than Berik</text>
+<text x="1454" y="1072" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Cast recovery</text>
+<text x="1618" y="1072" fill="#FF6A2B" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F4–F6</text>
+<text x="1708" y="1072" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">robe overshoot continues after release</text>
+<text x="1454" y="1116" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Dodge startup</text>
+<text x="1618" y="1116" fill="#FF6A2B" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F1</text>
+<text x="1708" y="1116" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">brief smear, no i-frames</text>
+<text x="1454" y="1160" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Dodge active</text>
+<text x="1618" y="1160" fill="#FF6A2B" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F2–F4</text>
+<text x="1708" y="1160" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">i-frames active, move avatar 48 px</text>
+<text x="1454" y="1204" fill="#F8E7A8" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Dodge recovery</text>
+<text x="1618" y="1204" fill="#FF6A2B" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">F5–F6</text>
+<text x="1708" y="1204" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">snap back faster than Berik</text>
+<text x="1454" y="1282" fill="#F8E7A8" font-size="12" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">HURTBOX</text>
+<rect x="1470" y="1310" width="170" height="190" fill="#0A111C" stroke="#6E3340" stroke-width="2"/>
+<g transform="translate(1510,1326) scale(2.2)">
+<rect x="4" y="68" width="31" height="3" fill="#020408" opacity=".7"/>
+<polygon points="7,18 19,2 32,18" fill="#7E1722"/>
+<rect x="11" y="17" width="17" height="12" fill="#7E1722"/>
+<rect x="14" y="19" width="10" height="8" fill="#160D12"/>
+<rect x="10" y="27" width="20" height="3" fill="#F1C75B"/>
+<polygon points="9,30 30,30 35,64 3,64" fill="#7E1722"/>
+<rect x="18" y="30" width="3" height="34" fill="#F1C75B"/>
+<rect x="4" y="63" width="30" height="3" fill="#B87A30"/>
+<rect x="3" y="34" width="12" height="5" fill="#5B1119"/>
+<rect x="29" y="34" width="11" height="5" fill="#5B1119"/>
+<rect x="5" y="66" width="10" height="4" fill="#171417"/>
+<rect x="24" y="66" width="10" height="4" fill="#171417"/>
+</g>
+<rect x="1536" y="1364" width="52" height="100" fill="none" stroke="#1EE88A" stroke-width="3"/>
+<text x="1660" y="1342" fill="#1EE88A" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">Green = hurtbox</text>
+<text x="1660" y="1366" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">Hood and cloth excluded.</text>
+<text x="1660" y="1388" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">Origin = feet center.</text>
+<text x="1660" y="1410" fill="#8C9CB3" font-size="10" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">Hand socket = fire VFX anchor.</text>
+<rect x="42" y="1568" width="2116" height="64" rx="16" fill="#0E1622" stroke="#F1C75B" stroke-width="2"/>
+<text x="60" y="1596" fill="#F8E7A8" font-size="16" font-family="IBM Plex Mono, monospace" font-weight="bold" text-anchor="start">EXPORT / NAMING</text>
+<text x="210" y="1607" fill="#8C9CB3" font-size="11" font-family="IBM Plex Mono, monospace" font-weight="normal" text-anchor="start">berik_cast_fireball_01.png   •   alisher_dodge_04.png   •   vfx_fireball_travel_06.png   •   vfx_shield_spawn_03.png</text>
+</svg>

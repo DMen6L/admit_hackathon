@@ -214,3 +214,7 @@ If multiplayer is implemented, keep local vision processing and send only the co
 ## Guidance for future development
 
 Preserve the defining loop: **webcam input → movement recognition → game action → immediate feedback**. Treat specific corrective feedback as essential to the experience. Keep the gesture vocabulary and gameplay configurable, and record settled decisions as the concept evolves.
+
+## Visual design references
+
+The character, animation, and effects reference boards live in [`web/public/assets/design/`](web/public/assets/design/). See [`docs/visual-assets.md`](docs/visual-assets.md) for their contents, production constraints, runtime status, and the expected frame-export workflow.
