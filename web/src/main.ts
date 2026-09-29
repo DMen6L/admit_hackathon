@@ -4,6 +4,11 @@ import { createHandTracker } from './vision/hand-tracker';
 import { processHands, resetHandProcessing } from './input/process-hands';
 import { IndexPathRecorder } from './drawing/path-recorder';
 import { DEFAULT_SHAPE_TEMPLATES, ShapeEvaluator, type ShapeEvaluation } from './shapes/shape-evaluator';
+import {
+  resolveSpell,
+  spellDefinitionFor,
+  type SpellCastPayload,
+} from './spells/spell-resolver';
 import { presentCastResult } from './ui/cast-result';
 
 const video = document.querySelector<HTMLVideoElement>('#camera')!;
@@ -23,6 +28,8 @@ const resultCard = document.querySelector<HTMLElement>('#cast-result')!;
 const resultIcon = document.querySelector<HTMLSpanElement>('#cast-result-icon')!;
 const resultTitle = document.querySelector<HTMLElement>('#cast-result-title')!;
 const resultDetail = document.querySelector<HTMLElement>('#cast-result-detail')!;
+const resultSpell = document.querySelector<HTMLElement>('#cast-result-spell')!;
+const resultRune = document.querySelector<HTMLElement>('#cast-result-rune')!;
 const resultCorrection = document.querySelector<HTMLElement>('#cast-result-correction')!;
 const placeholder = document.querySelector<HTMLParagraphElement>('#placeholder')!;
 const preview = document.querySelector<HTMLDivElement>('.preview')!;
@@ -67,19 +74,39 @@ function clearCastResult(): void {
   resultIcon.textContent = '';
   resultTitle.textContent = '';
   resultDetail.textContent = '';
+  resultSpell.textContent = '';
+  resultSpell.hidden = true;
+  resultRune.textContent = '';
+  resultRune.hidden = true;
   resultCorrection.textContent = '';
   resultCorrection.hidden = true;
 }
 
-function showCastResult(evaluation: ShapeEvaluation): void {
+function showCastResult(evaluation: ShapeEvaluation): SpellCastPayload | undefined {
   const presentation = presentCastResult(evaluation);
+  const spellPayload = resolveSpell(evaluation);
+  const spellDefinition = spellPayload ? spellDefinitionFor(spellPayload.spellId) : undefined;
   resultCard.hidden = false;
   resultCard.dataset.state = presentation.state;
   resultIcon.textContent = presentation.icon;
   resultTitle.textContent = presentation.title;
   resultDetail.textContent = presentation.detail;
+  resultSpell.textContent = spellDefinition ? `Spell: ${spellDefinition.name}` : '';
+  resultSpell.hidden = !spellDefinition;
+  resultRune.textContent = spellDefinition
+    ? `Rune reading: ${spellDefinition.runeInterpretation}`
+    : '';
+  resultRune.hidden = !spellDefinition;
   resultCorrection.hidden = !presentation.correction;
   resultCorrection.textContent = presentation.correction ?? '';
+  return spellPayload;
+}
+
+function publishSpellCast(payload: SpellCastPayload | undefined): void {
+  if (!payload) return;
+
+  // A future WebSocket/fetch adapter can listen to this JSON-safe event.
+  window.dispatchEvent(new CustomEvent<SpellCastPayload>('spell-cast', { detail: payload }));
 }
 
 function drawRecordedPaths(): void {
@@ -173,7 +200,11 @@ function trackFrame(activeSession: number): void {
       const processedHands = processHands(results, timestampMs);
       const completedStrokes = pathRecorder.update(processedHands.hands, results.landmarks);
       if (completedStrokes.length > 0) {
-        for (const stroke of completedStrokes) showCastResult(shapeEvaluator.evaluate(stroke));
+        for (const stroke of completedStrokes) {
+          const evaluation = shapeEvaluator.evaluate(stroke);
+          const spellPayload = showCastResult(evaluation);
+          publishSpellCast(spellPayload);
+        }
       }
       drawRecordedPaths();
       for (const [handIndex, landmarks] of results.landmarks.entries()) {
