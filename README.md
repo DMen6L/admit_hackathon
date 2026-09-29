@@ -270,19 +270,17 @@ Time Lock, and a straight line → Spark. The Spellbook shows all six shapes.
 
 `src/duel/demo-duel.ts` contains isolated local demo rules (100 health, 20 fireball
 damage, 15 lightning damage, 45 Twin Flare damage, 7 Spark damage, 900 ms cast
-cooldown, and a 3.5-second one-hit shield). Time Lock reveals the enemy spell
+cooldown, and a 4.3-second one-hit shield). Time Lock reveals the enemy spell
 and adds 1.5 seconds to an attack that is charging, or to the next attack if
 none is charging.
 `duel-view.ts` loads assets and renders these rules. A backend integration should
 replace the local model with authoritative server state. The opponent attempts a
 spell after a short opening delay and alternates fireball and lightning. Each
 attempt has a 15% chance to fizzle without a projectile. His charge lasts at
-least 2.2 seconds before release, giving the player time to draw and release a
+least 3 seconds before release, giving the player time to draw and release a
 shield. The charge warning hides the spell identity until Time Lock reveals it.
 A defensive shield can bypass an offensive cooldown during an incoming attack.
 Logout resets the duel; hidden pages pause it.
-replace the local model with authoritative server state. The opponent attacks after
-a short opening delay and then alternates fireball and lightning. Its visible rune charges for 3 seconds before release, giving the player time to draw and release a shield. A defensive shield can bypass an offensive cooldown during an incoming attack. The opponent spell buttons trigger extra practice attacks. Logout resets the duel; hidden pages pause it.
 The practice duel ends at zero health and offers Restart duel.
 
 Pause freezes the duel clock, projectiles, shields, and cooldowns; webcam spell

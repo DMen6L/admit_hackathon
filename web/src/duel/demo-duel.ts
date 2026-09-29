@@ -1,7 +1,8 @@
 export type Spell = 'fireball' | 'shield' | 'lightning' | 'twin-flare' | 'time-lock' | 'spark';
 export type Side = 0 | 1;
 export const CAST_COOLDOWN_MS = 900;
-export const ENEMY_WINDUP_MS = 2200;
+export const ENEMY_WINDUP_MS = 3000;
+const SHIELD_DURATION_MS = 4300;
 export const TIME_LOCK_DELAY_MS = 1500;
 export const ENEMY_MISCAST_CHANCE = 0.15;
 export interface Fighter { health: number; shieldUntil: number; castAt: number; shieldAt: number; slowNextAttack: boolean; revealNextAttack: boolean; }
@@ -59,7 +60,7 @@ export class DemoDuel {
     fighter.castAt = now;
     if (spell === 'shield') {
       fighter.shieldAt = now;
-      fighter.shieldUntil = now + 3500;
+      fighter.shieldUntil = now + SHIELD_DURATION_MS;
       this.message = `${this.name(side)} raises a shield.`;
     } else if (spell === 'time-lock') {
       const target: Side = side === 0 ? 1 : 0;
