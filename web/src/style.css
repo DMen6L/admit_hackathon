@@ -41,6 +41,7 @@ p { line-height: 1.6; }
 .checkbox-field input { width: 17px; height: 17px; accent-color: #85e3c7; }
 .form-error { margin: 0 0 16px; border: 1px solid rgba(255, 143, 143, 0.5); border-radius: 8px; padding: 10px 12px; background: rgba(255, 143, 143, 0.08); color: #ffb6b6; font-size: 0.86rem; }
 .primary-action { width: 100%; border-color: #85e3c7; background: #85e3c7; color: #0b151b; font-weight: 750; }
+.auth-mode-toggle { width: 100%; margin-top: 14px; border: 0; padding: 6px; color: #85e3c7; font-size: 0.88rem; }
 .demo-access { display: grid; gap: 5px; margin-top: 24px; border-top: 1px solid #2d3b4e; padding-top: 20px; color: #8fa3bc; font-size: 0.78rem; }
 .demo-access strong { color: #c9d4e1; }
 .demo-access code { color: #ffe099; }

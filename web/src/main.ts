@@ -11,7 +11,7 @@ import {
 } from './spells/spell-resolver';
 import { presentCastResult } from './ui/cast-result';
 import { AuthController } from './auth/auth-controller';
-import { DemoAuthService } from './auth/auth-service';
+import { ApiAuthService } from './auth/auth-service';
 
 interface DevDiagnostics {
   onFrame(results: HandLandmarkerResult, processed: HandProcessingResult, timestampMs: number,
@@ -348,7 +348,7 @@ stopButton.addEventListener('click', () => stopCamera());
 window.addEventListener('pagehide', () => stopCamera());
 
 const authController = new AuthController(
-  new DemoAuthService(window.localStorage, window.sessionStorage),
+  new ApiAuthService(globalThis.fetch.bind(globalThis), window.localStorage, window.sessionStorage),
   { onSignOut: () => stopCamera('Signed out. Your camera has been released.') },
 );
 void authController.initialize();
