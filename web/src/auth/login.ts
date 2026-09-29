@@ -1,5 +1,5 @@
 import '../style.css';
 import { AuthController } from './auth-controller';
-import { DemoAuthService } from './auth-service';
+import { ApiAuthService } from './auth-service';
 
-void new AuthController(new DemoAuthService(window.localStorage, window.sessionStorage)).initialize();
+void new AuthController(new ApiAuthService(globalThis.fetch.bind(globalThis), window.localStorage, window.sessionStorage)).initialize();

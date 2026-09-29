@@ -31,7 +31,7 @@ describe('cast result presentation', () => {
 
     expect(result.state).toBe('success');
     expect(result.title).toBe('SPELL CAST');
-    expect(result.detail).toContain('Triangle rune');
+    expect(result.detail).toBe('Triangle rune');
   });
 
   it('keeps a near-miss correction visible', () => {
@@ -39,11 +39,14 @@ describe('cast result presentation', () => {
 
     expect(result.state).toBe('near-miss');
     expect(result.title).toBe('ALMOST');
+    expect(result.detail).toBe('Triangle rune');
     expect(result.correction).toBe('Use fewer turns');
   });
 
   it('distinguishes failure from cancellation', () => {
-    expect(presentCastResult(evaluation('unrecognized')).state).toBe('failure');
+    const failure = presentCastResult(evaluation('unrecognized'));
+    expect(failure.state).toBe('failure');
+    expect(failure.detail).toBe('No spell matched');
     expect(presentCastResult(evaluation('insufficient')).state).toBe('cancelled');
   });
 });

@@ -1,4 +1,5 @@
 import {
+  AuthRequestError,
   InvalidCredentialsError,
   type AuthService,
   type SignInCredentials,
@@ -14,14 +15,20 @@ function requiredElement<T extends Element>(selector: string): T {
 export class AuthController {
   private readonly loginScreen = requiredElement<HTMLElement>('#login-screen');
   private readonly form = requiredElement<HTMLFormElement>('#login-form');
-  private readonly email = requiredElement<HTMLInputElement>('#email');
+  private readonly login = requiredElement<HTMLInputElement>('#login');
   private readonly password = requiredElement<HTMLInputElement>('#password');
   private readonly keepSignedIn = requiredElement<HTMLInputElement>('#keep-signed-in');
-  private readonly emailError = requiredElement<HTMLElement>('#email-error');
+  private readonly loginError = requiredElement<HTMLElement>('#login-field-error');
   private readonly passwordError = requiredElement<HTMLElement>('#password-error');
   private readonly formError = requiredElement<HTMLElement>('#login-error');
   private readonly submitButton = requiredElement<HTMLButtonElement>('#login-submit');
   private readonly passwordToggle = requiredElement<HTMLButtonElement>('#password-toggle');
+  private readonly headingEyebrow = requiredElement<HTMLElement>('#auth-eyebrow');
+  private readonly heading = requiredElement<HTMLElement>('#login-title');
+  private readonly headingCopy = requiredElement<HTMLElement>('#login-copy');
+  private readonly modeToggle = requiredElement<HTMLButtonElement>('#auth-mode-toggle');
+  private readonly demoAccess = requiredElement<HTMLElement>('#demo-access');
+  private registering = false;
 
   constructor(
     private readonly authService: AuthService,
@@ -30,7 +37,8 @@ export class AuthController {
   async initialize(): Promise<void> {
     this.form.addEventListener('submit', (event) => { void this.handleSubmit(event); });
     this.passwordToggle.addEventListener('click', () => this.togglePasswordVisibility());
-    this.email.addEventListener('input', () => this.setFieldError(this.email, this.emailError));
+    this.modeToggle.addEventListener('click', () => this.toggleMode());
+    this.login.addEventListener('input', () => this.setFieldError(this.login, this.loginError));
     this.password.addEventListener('input', () => this.setFieldError(this.password, this.passwordError));
 
     try {
@@ -49,27 +57,31 @@ export class AuthController {
     this.clearErrors();
 
     const credentials: SignInCredentials = {
-      email: this.email.value,
+      login: this.login.value,
       password: this.password.value,
       keepSignedIn: this.keepSignedIn.checked,
     };
     const errors = validateCredentials(credentials);
-    this.setFieldError(this.email, this.emailError, errors.email);
+    this.setFieldError(this.login, this.loginError, errors.login);
     this.setFieldError(this.password, this.passwordError, errors.password);
-    if (errors.email || errors.password) {
-      (errors.email ? this.email : this.password).focus();
+    if (errors.login || errors.password) {
+      (errors.login ? this.login : this.password).focus();
       return;
     }
 
     this.setPending(true);
     try {
-      await this.authService.signIn(credentials);
+      this.registering
+        ? await this.authService.register(credentials)
+        : await this.authService.signIn(credentials);
       this.form.reset();
       this.showGame();
     } catch (error) {
-      this.formError.textContent = error instanceof InvalidCredentialsError
+      this.formError.textContent = error instanceof InvalidCredentialsError || error instanceof AuthRequestError
         ? error.message
-        : 'Sign-in is temporarily unavailable. Please try again.';
+        : this.registering
+          ? 'Account creation is temporarily unavailable. Please try again.'
+          : 'Sign-in is temporarily unavailable. Please try again.';
       this.formError.hidden = false;
       this.password.select();
     } finally {
@@ -84,7 +96,7 @@ export class AuthController {
   private showLogin(): void {
     this.loginScreen.hidden = false;
     this.password.value = '';
-    this.email.focus();
+    this.login.focus();
   }
 
   private togglePasswordVisibility(): void {
@@ -98,15 +110,32 @@ export class AuthController {
 
   private setPending(pending: boolean): void {
     this.submitButton.disabled = pending;
-    this.submitButton.textContent = pending ? 'Entering the arena…' : 'Enter the arena';
+    this.modeToggle.disabled = pending;
+    this.submitButton.textContent = pending
+      ? (this.registering ? 'Creating your account…' : 'Entering the arena…')
+      : (this.registering ? 'Create account' : 'Enter the arena');
     this.form.setAttribute('aria-busy', String(pending));
   }
 
   private clearErrors(): void {
-    this.setFieldError(this.email, this.emailError);
+    this.setFieldError(this.login, this.loginError);
     this.setFieldError(this.password, this.passwordError);
     this.formError.hidden = true;
     this.formError.textContent = '';
+  }
+
+  private toggleMode(): void {
+    this.registering = !this.registering;
+    this.clearErrors();
+    this.headingEyebrow.textContent = this.registering ? 'New spellcaster' : 'Welcome back';
+    this.heading.textContent = this.registering ? 'Create your account' : 'Enter the arena';
+    this.headingCopy.textContent = this.registering
+      ? 'Choose a login to begin your spellbook.'
+      : 'Sign in to continue to your spellbook.';
+    this.submitButton.textContent = this.registering ? 'Create account' : 'Enter the arena';
+    this.modeToggle.textContent = this.registering ? 'Already have an account? Sign in' : 'Create an account';
+    this.demoAccess.hidden = this.registering;
+    this.login.focus();
   }
 
   private setFieldError(input: HTMLInputElement, output: HTMLElement, message?: string): void {

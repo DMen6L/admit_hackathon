@@ -23,7 +23,22 @@ npm run dev
 
 Open the localhost URL shown in the terminal, click **Start camera**, and allow webcam access. Use **Stop camera** to release the camera. Camera access requires localhost or HTTPS; opening the HTML file directly is not the supported development workflow.
 
-The prototype opens on a sign-in screen. Use `mage@wizard.dev` with password `Spellbound1`. This local demo account exists only to exercise the complete interface and session flow; it stores no password and should be replaced by a server-backed implementation before real accounts are introduced.
+## Run the API and PostgreSQL
+
+From the repository root, copy `.env.example` to `.env`, replace the development secrets, and start the services:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+The API is available at `http://localhost:8000`, PostgreSQL at `localhost:5432`, and migrations run automatically when the API container starts. Create an account in the browser's registration mode, or run `python scripts/smoke_auth.py` to create a test account and verify `/api/auth/me`. The frontend calls the database-backed API at `http://127.0.0.1:8000` by default; set `VITE_API_BASE_URL` before starting Vite to use another API origin.
+
+If another local PostgreSQL service already owns host port `5432`, set `POSTGRES_PORT=5433` in `.env` (the API still uses PostgreSQL's internal Compose port `5432`).
+
+The sign-in screen uses the API-backed account service. Start the backend with `docker compose up --build`, then create an account from **Create an account**. Passwords are hashed by the API and never stored in the browser.
+
+The backend exposes `POST /api/auth/register`, `POST /api/auth/login`, and `GET /api/auth/me`. Copy `.env.example` to `.env` and replace the development JWT secret and PostgreSQL password before sharing the service. The frontend uses `VITE_API_BASE_URL` when supplied, otherwise `http://127.0.0.1:8000`.
 
 `npm run setup` downloads Google's pretrained `hand_landmarker.task` model and copies the WebAssembly runtime from the installed MediaPipe package. Both are served locally by the app. The generated assets are ignored by Git; rerun setup after installing or updating dependencies. Players do not need Node.js, Python, or a local installation.
 
@@ -37,18 +52,22 @@ The initial files are:
 - [`web/src/spells/spell-resolver.ts`](web/src/spells/spell-resolver.ts): converts confirmed shape IDs into versioned, JSON-safe spell messages and configurable frontend spell/rune definitions.
 - [`web/src/ui/cast-result.ts`](web/src/ui/cast-result.ts): testable presentation states for successful, near-miss, failed, and cancelled casts.
 - [`web/index.html`](web/index.html) and [`web/src/style.css`](web/src/style.css): the basic tracking screen.
+- [`src/admit_hackathon/api/`](src/admit_hackathon/api/): FastAPI authentication routes, UUID user model, Argon2 password verification, and JWT handling.
+- [`compose.yaml`](compose.yaml) and [`migrations/`](migrations/): PostgreSQL service configuration and the users-table migration.
 
 The preview is mirrored, while the landmark data passed to `processHands` uses the original camera coordinates. Results also arrive when no hands are detected. Handedness is a model classification, not a persistent identity for a hand across frames.
 
 The first custom casting gesture is a raised index finger. `processHands` checks that the index extends above the hand while the middle, ring, and pinky fingers are curled. The pose must remain stable for four frames before `justStarted` is emitted. When the pose ends, the stroke enters a pending release state; the user must show all five fingers in a stable, camera-facing palm for four frames to emit `justReleased`. A casting hand is highlighted in gold and labeled in the readout. Diagnostic fields provide concrete corrections for both casting and release poses.
 
-While casting, the index fingertip writes a smoothed gold path on a dedicated canvas over the webcam preview. Strokes are normalized to the video dimensions and recorded independently for each hand. The path remains visible while the player is asked to show their palm, then is evaluated against broad topology, corner, closure, direction, proportion, and circle-radial features for the sample triangle, circle, and lightning templates. Exact tracing is not required: small endpoint gaps and overshoots remain eligible for a closed shape, while lightning needs clearly separated endpoints and its alternating turns. Unsupported shapes, such as a square before a square template exists, are reported as unrecognized instead of being mislabeled as a triangle or lightning. A persistent result card clearly reports **SPELL CAST**, **ALMOST**, **CAST FAILED**, or **CAST CANCELLED** with a correction when needed; tracking loss, camera stop, and release timeout cancel the pending attempt.
+While casting, the index fingertip writes a gold path on a dedicated canvas over the webcam preview. The recorder keeps both raw timestamped points and a filtered path. Recognition corrects for the video aspect ratio, then compares aligned outlines as well as topology, corners, closure, and circle geometry for the sample triangle, circle, and lightning templates. A brief tracking or pose gap can be recovered; longer gaps and release timeouts cancel the pending attempt. A persistent result card reports **SPELL CAST**, **ALMOST**, **CAST FAILED**, or **CAST CANCELLED** with a correction when available. The shown match score is a heuristic and is not a calibrated probability.
+
+When running `npm run dev`, the **Recognition diagnostics** panel can record local landmark and stroke data, download it as JSON, and replay it through the current recognition pipeline. It never records camera pixels. Capture starts only when the developer clicks **Start local capture**. Replay does not dispatch spell events. Candidate scores and the last raw/filtered outline are shown in the panel. The panel and browser capture code are absent from the production build. For labeled evaluation, see [`web/evaluation/README.md`](web/evaluation/README.md).
 
 Confirmed matches are converted through `resolveSpell` into a `spell_cast` payload containing `spellId`, `sourceShapeId`, and confidence. The cast card also shows the resolved spell name and a short rune interpretation. The browser dispatches the payload as a `spell-cast` event; networking is intentionally left to a later WebSocket or HTTP adapter. Near misses and unrecognized shapes do not produce backend commands.
 
 This first prototype uses CPU inference on the main thread. It establishes the input pipeline, deliberate release gesture, and configurable shape matching; a broader gesture vocabulary, combat, and a playable scenario are not implemented yet. Move inference to a worker if it interferes with rendering as the game grows.
 
-Run `npm test` and `npm run build` from `web/` to validate gesture logic and produce `web/dist/`. Run `npm run preview` to inspect that build locally. The existing Python scaffold is independent of this browser prototype.
+Run `npm test` and `npm run build` from `web/` to validate frontend auth and gesture logic and produce `web/dist/`. Run `npm run preview` to inspect that build locally. Run `uv run --extra test pytest` from the repository root for backend auth tests.
 
 References: [MediaPipe web integration](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/web_js), [official hand model](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker#models), and [Vite setup](https://vite.dev/guide/).
 
@@ -241,7 +260,7 @@ sign-in (or restoring a session) navigates to battle. The battle page uses a wid
 arena with a compact camera panel, stacking the camera underneath on small screens.
 Artwork loading times out after 15 seconds and offers a reload link on failure.
 
-After demo sign-in, the courtyard renders both wizards with live health bars.
+After API-backed sign-in, the courtyard renders both wizards with live health bars.
 Use Fireball, Shield, Lightning, or Opponent attack to test it without a camera.
 Webcam `spell-cast` events also trigger Berik's visuals: `rune.triangle` → Fireball,
 `rune.circle` → Shield, `rune.lightning` → Lightning. This is a demo presentation

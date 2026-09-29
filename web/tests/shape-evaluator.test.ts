@@ -116,6 +116,68 @@ describe('shape evaluator', () => {
     expect(evaluation.score).toBeGreaterThanOrEqual(0.60);
   });
 
+  it('accepts triangular sides despite template proportions, while rejecting an open flat outline', () => {
+    const evaluator = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES);
+    const path = (pairs: number[][]): PathPoint[] => pairs.map(([x, y]) => ({ x, y }));
+    const rounded = path([
+      [.503, 0], [.595, .064], [.878, .326], [.999, .461], [.961, .526],
+      [.692, .552], [.324, .574], [.054, .584], [0, .542], [.112, .422],
+      [.303, .253], [.49, .083], [.568, .013],
+    ]);
+    const flattened = path([
+      [.629, 0], [.71, .11], [.921, .349], [1, .51], [.751, .535],
+      [.289, .508], [0, .525], [.131, .462], [.355, .357], [.507, .239],
+    ]);
+    const broadClosed = path([
+      [.634, 0], [.75, .122], [.966, .334], [.976, .444], [.689, .417],
+      [.263, .389], [0, .407], [.121, .351], [.351, .259], [.547, .168], [.633, .06],
+    ]);
+
+    expect(evaluator.evaluate(rounded).status).toBe('matched');
+    expect(evaluator.evaluate(rounded).templateId).toBe('triangle');
+    expect(evaluator.evaluate(flattened).status).toBe('near-miss');
+    expect(evaluator.evaluate(broadClosed).status).toBe('matched');
+  });
+
+  it('matches wide captured triangles with a short extra corner', () => {
+    const widePaths = [
+      [
+        [.366, .344], [.372, .356], [.403, .401], [.436, .451], [.445, .469],
+        [.442, .481], [.428, .490], [.402, .495], [.366, .500], [.326, .504],
+        [.285, .505], [.249, .506], [.223, .507], [.205, .504], [.198, .495],
+        [.203, .482], [.236, .442], [.289, .403], [.334, .365], [.351, .349],
+      ],
+      [
+        [.432, .368], [.472, .411], [.501, .446], [.502, .455], [.497, .461],
+        [.484, .467], [.463, .472], [.433, .477], [.400, .478], [.368, .476],
+        [.341, .473], [.321, .474], [.313, .470], [.317, .461], [.345, .436],
+        [.382, .407], [.416, .378], [.430, .367], [.442, .361],
+      ],
+    ];
+    const evaluator = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES);
+    for (const pairs of widePaths) {
+      const evaluation = evaluator.evaluate({
+        key: 'captured', label: 'Right', aspectRatio: 4 / 3,
+        points: pairs.map(([x, y]) => ({ x, y })),
+      });
+      expect(evaluation.candidates?.find((candidate) => candidate.templateId === 'triangle')?.outlineError)
+        .toBeGreaterThan(0.18);
+      expect(evaluation.status).toBe('matched');
+      expect(evaluation.templateId).toBe('triangle');
+    }
+  });
+
+  it('does not confuse a broad rounded rectangle with a triangle', () => {
+    const roundedRectangle: PathPoint[] = [
+      [.732, .027], [.74, .081], [.882, .335], [.989, .618], [.949, .745],
+      [.648, .751], [.257, .731], [.037, .726], [.005, .583], [.012, .349],
+      [.076, .154], [.266, .037], [.554, 0], [.801, .022], [.882, .024],
+    ].map(([x, y]) => ({ x, y }));
+    expect(new ShapeEvaluator([triangle]).evaluate(roundedRectangle).status).not.toBe('matched');
+    const fullEvaluation = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES).evaluate(roundedRectangle);
+    expect(fullEvaluation.status).not.toBe('matched');
+  });
+
   it('recognizes a circle using radial consistency', () => {
     const evaluator = new ShapeEvaluator([circle]);
     const evaluation = evaluator.evaluate(circle.points);
@@ -123,6 +185,20 @@ describe('shape evaluator', () => {
     expect(evaluation.status).toBe('matched');
     expect(evaluation.templateId).toBe('circle');
     expect(evaluation.diagnostics.radialError).toBeLessThan(0.2);
+  });
+
+  it('uses camera aspect ratio to recognize a screen-space circle', () => {
+    const evaluator = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES);
+    const stretched = circle.points.map((point) => ({ x: point.x * 0.5625, y: point.y }));
+    const evaluation = evaluator.evaluate({ key: 'a', label: 'Right', points: stretched, aspectRatio: 16 / 9 });
+    expect(evaluation.status).toBe('matched');
+    expect(evaluation.templateId).toBe('circle');
+  });
+
+  it('accepts mirrored lightning when the template permits reflection', () => {
+    const evaluator = new ShapeEvaluator(DEFAULT_SHAPE_TEMPLATES);
+    const mirrored = lightning.points.map((point) => ({ x: 1 - point.x, y: point.y }));
+    expect(evaluator.evaluate(mirrored).templateId).toBe('zigzag');
   });
 
   it('tolerates uneven circle samples while rejecting a partial arc', () => {

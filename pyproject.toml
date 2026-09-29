@@ -7,10 +7,22 @@ authors = [
     { name = "DMen6L", email = "240103073@sdu.edu.kz" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "alembic>=1.14,<2",
+    "fastapi>=0.115,<1",
+    "psycopg[binary]>=3.2,<4",
+    "pydantic-settings>=2.6,<3",
+    "PyJWT>=2.10,<3",
+    "pwdlib[argon2]>=0.2,<1",
+    "sqlalchemy>=2.0,<3",
+    "uvicorn[standard]>=0.34,<1",
+]
 
 [project.scripts]
 admit-hackathon = "admit_hackathon:main"
+
+[project.optional-dependencies]
+test = ["httpx>=0.27,<1", "pytest>=8,<9"]
 
 [build-system]
 requires = ["uv_build>=0.12.15,<0.13.0"]

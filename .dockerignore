@@ -1,0 +1,9 @@
+.git
+.venv
+__pycache__
+*.py[cod]
+.env
+web/node_modules
+web/dist
+web/public/models
+web/public/wasm

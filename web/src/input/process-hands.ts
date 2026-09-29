@@ -15,9 +15,11 @@ const PINKY_PIP = 18;
 const PINKY_TIP = 20;
 const WRIST = 0;
 
-const RAISED_INDEX_START_FRAMES = 4;
-const RAISED_INDEX_RELEASE_FRAMES = 2;
-const OPEN_PALM_RELEASE_FRAMES = 4;
+const CAST_START_MS = 90;
+const POSE_GAP_MS = 100;
+const PALM_HOLD_MS = 90;
+const TRACKING_GRACE_MS = 220;
+const RESUME_WINDOW_MS = 350;
 const RELEASE_TIMEOUT_MS = 1500;
 const INDEX_VERTICAL_MARGIN = 0.10;
 const INDEX_EXTENSION_RATIO = 1.08;
@@ -42,6 +44,8 @@ export interface CastingDiagnostics {
 }
 
 export interface CastingHandState extends CastingDiagnostics {
+  id: string;
+  poseValid: boolean;
   handIndex: number;
   label: string;
   phase: CastingPhase;
@@ -68,18 +72,24 @@ interface Point {
 }
 
 interface CastingState {
-  candidateFrames: number;
-  releaseFrames: number;
+  id: string;
+  label: string;
+  wrist: Point;
+  lastSeenMs: number;
+  candidateSinceMs: number;
+  poseLostSinceMs: number;
+  palmSinceMs: number;
   isCasting: boolean;
   phase: CastingPhase;
-  releaseCandidateFrames: number;
   awaitingSinceMs: number;
 }
 
 const previousCasting = new Map<string, CastingState>();
+let nextHandId = 1;
 
 export function resetHandProcessing(): void {
   previousCasting.clear();
+  nextHandId = 1;
 }
 
 function distance(a: Point, b: Point): number {
@@ -146,6 +156,7 @@ export function processHands(
   results: HandLandmarkerResult,
   timestampMs: number,
 ): HandProcessingResult {
+  const claimed = new Set<string>();
   const hands = results.landmarks.map((landmarks, handIndex) => {
     const world = results.worldLandmarks[handIndex];
     const metricPoints = world?.length === landmarks.length ? world : landmarks;
@@ -197,15 +208,28 @@ export function processHands(
     diagnostics.releaseCorrection = releaseCorrectionFor(diagnostics);
     const qualifies = indexRaised && otherFingersCurled && thumbRelaxed;
     const label = handLabel(results, handIndex);
-    const key = `${label}-${handIndex}`;
-    const state = previousCasting.get(key) ?? {
-      candidateFrames: 0,
-      releaseFrames: 0,
+    const wrist = landmarks[WRIST];
+    const available = [...previousCasting.values()]
+      .filter((candidate) => !claimed.has(candidate.id) && timestampMs - candidate.lastSeenMs <= TRACKING_GRACE_MS)
+      .map((candidate) => ({ candidate, gap: Math.hypot((candidate.wrist.x - wrist.x) * 1.4, candidate.wrist.y - wrist.y) }))
+      .filter(({ gap }) => gap <= 0.22)
+      .sort((a, b) => a.gap - b.gap);
+    const state = available[0]?.candidate ?? {
+      id: `hand-${nextHandId++}`,
+      label,
+      wrist: { ...wrist },
+      lastSeenMs: timestampMs,
+      candidateSinceMs: -1,
+      poseLostSinceMs: -1,
+      palmSinceMs: -1,
       isCasting: false,
       phase: 'idle' as CastingPhase,
-      releaseCandidateFrames: 0,
       awaitingSinceMs: 0,
     };
+    claimed.add(state.id);
+    state.label = label;
+    state.wrist = { ...wrist };
+    state.lastSeenMs = timestampMs;
     let justStarted = false;
     let justEnded = false;
     let releaseStarted = false;
@@ -216,16 +240,14 @@ export function processHands(
 
     if (state.phase === 'casting') {
       if (qualifies) {
-        state.candidateFrames += 1;
-        state.releaseFrames = 0;
+        state.poseLostSinceMs = -1;
       } else {
-        state.candidateFrames = 0;
-        state.releaseFrames += 1;
-        if (state.releaseFrames >= RAISED_INDEX_RELEASE_FRAMES) {
+        if (state.poseLostSinceMs < 0) state.poseLostSinceMs = timestampMs;
+        if (timestampMs - state.poseLostSinceMs >= POSE_GAP_MS || releasePose) {
           state.isCasting = false;
           state.phase = 'awaiting-release';
           state.awaitingSinceMs = timestampMs;
-          state.releaseCandidateFrames = releasePose ? 1 : 0;
+          state.palmSinceMs = releasePose ? timestampMs : -1;
           justEnded = true;
           releaseStarted = true;
         }
@@ -234,34 +256,38 @@ export function processHands(
       if (timestampMs - state.awaitingSinceMs >= RELEASE_TIMEOUT_MS) {
         state.phase = 'idle';
         state.awaitingSinceMs = 0;
-        state.releaseCandidateFrames = 0;
+        state.palmSinceMs = -1;
         releaseCancelled = true;
       } else if (releasePose) {
-        state.releaseCandidateFrames += 1;
-        if (state.releaseCandidateFrames >= OPEN_PALM_RELEASE_FRAMES) {
+        if (state.palmSinceMs < 0) state.palmSinceMs = timestampMs;
+        if (timestampMs - state.palmSinceMs >= PALM_HOLD_MS) {
           state.phase = 'released';
-          state.releaseCandidateFrames = 0;
+          state.palmSinceMs = -1;
           justReleased = true;
         }
+      } else if (qualifies && timestampMs - state.awaitingSinceMs <= RESUME_WINDOW_MS) {
+        state.phase = 'casting';
+        state.isCasting = true;
+        state.poseLostSinceMs = -1;
       } else {
-        state.releaseCandidateFrames = 0;
+        state.palmSinceMs = -1;
       }
     } else if (qualifies) {
-      state.candidateFrames += 1;
-      state.releaseFrames = 0;
-      if (state.candidateFrames >= RAISED_INDEX_START_FRAMES) {
+      if (state.candidateSinceMs < 0) state.candidateSinceMs = timestampMs;
+      if (timestampMs - state.candidateSinceMs >= CAST_START_MS) {
         state.isCasting = true;
         state.phase = 'casting';
         justStarted = true;
       }
     } else {
-      state.candidateFrames = 0;
-      state.releaseFrames = 0;
+      state.candidateSinceMs = -1;
     }
-    previousCasting.set(key, state);
+    previousCasting.set(state.id, state);
 
     return {
       ...diagnostics,
+      id: state.id,
+      poseValid: qualifies,
       handIndex,
       label,
       phase: state.phase,
@@ -279,9 +305,8 @@ export function processHands(
     };
   });
 
-  const visibleKeys = new Set(hands.map((hand) => `${hand.label}-${hand.handIndex}`));
-  for (const key of previousCasting.keys()) {
-    if (!visibleKeys.has(key)) previousCasting.delete(key);
+  for (const [key, state] of previousCasting) {
+    if (!claimed.has(key) && timestampMs - state.lastSeenMs > TRACKING_GRACE_MS) previousCasting.delete(key);
   }
 
   return {

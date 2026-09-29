@@ -10,6 +10,7 @@
     "setup": "node scripts/setup-assets.mjs",
     "dev": "vite --host 127.0.0.1",
     "test": "vitest run",
+    "evaluate": "node scripts/evaluate-captures.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1"
   },
@@ -17,6 +18,7 @@
     "@mediapipe/tasks-vision": "1.0.1"
   },
   "devDependencies": {
+    "rolldown": "1.2.11",
     "typescript": "7.0.2",
     "vite": "8.3.1",
     "vitest": "5.0.2"
