@@ -32,3 +32,5 @@ htmlcov/
 # Operating system metadata
 .DS_Store
 Thumbs.db
+
+AGENTS.md

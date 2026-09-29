@@ -29,14 +29,19 @@ The initial files are:
 
 - [`web/src/main.ts`](web/src/main.ts): camera lifecycle, frame processing, and the landmark overlay.
 - [`web/src/vision/hand-tracker.ts`](web/src/vision/hand-tracker.ts): MediaPipe initialization and tracking configuration.
-- [`web/src/input/process-hands.ts`](web/src/input/process-hands.ts): an intentionally empty hook for our own gesture calculations and corrective feedback, called with each frame's results and timestamp.
+- [`web/src/input/process-hands.ts`](web/src/input/process-hands.ts): custom gesture calculations and corrective-feedback data, called with each frame's results and timestamp.
+- [`web/src/drawing/path-recorder.ts`](web/src/drawing/path-recorder.ts): normalized index-fingertip strokes recorded while casting is active.
 - [`web/index.html`](web/index.html) and [`web/src/style.css`](web/src/style.css): the basic tracking screen.
 
 The preview is mirrored, while the landmark data passed to `processHands` uses the original camera coordinates. Results also arrive when no hands are detected. Handedness is a model classification, not a persistent identity for a hand across frames.
 
-This first prototype uses CPU inference on the main thread. It establishes the input pipeline; gesture recognition, error mode, combat, and a playable scenario are not implemented yet. Move inference to a worker if it interferes with rendering as the game grows.
+The first custom casting gesture is a raised index finger. `processHands` checks that the index extends above the hand while the middle, ring, and pinky fingers are curled. The pose must remain stable for four frames before `justStarted` is emitted; two release frames end casting. A casting hand is highlighted in gold and labeled in the readout. Diagnostic fields provide concrete corrections when the pose is close but incomplete.
 
-Run `npm run build` from `web/` to type-check and produce `web/dist/`. Run `npm run preview` to inspect that build locally. The existing Python scaffold is independent of this browser prototype.
+While casting, the index fingertip writes a smoothed gold path on a dedicated canvas over the webcam preview. Strokes are normalized to the video dimensions, recorded independently for each hand, and cleared when casting ends, tracking disappears, or the camera stops. The path is visual feedback only; it does not yet create a spell or persist between casts.
+
+This first prototype uses CPU inference on the main thread. It establishes the input pipeline and one casting gesture; a broader gesture vocabulary, error mode, combat, and a playable scenario are not implemented yet. Move inference to a worker if it interferes with rendering as the game grows.
+
+Run `npm test` and `npm run build` from `web/` to validate gesture logic and produce `web/dist/`. Run `npm run preview` to inspect that build locally. The existing Python scaffold is independent of this browser prototype.
 
 References: [MediaPipe web integration](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/web_js), [official hand model](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker#models), and [Vite setup](https://vite.dev/guide/).
 
