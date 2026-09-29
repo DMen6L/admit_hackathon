@@ -58,6 +58,12 @@ function setStatus(message: string, error = false): void {
   status.dataset.error = String(error);
 }
 
+function setCastingStatus(message: string, active: boolean): void {
+  if (castingStatus.textContent !== message) castingStatus.textContent = message;
+  if (active) castingStatus.dataset.active = 'true';
+  else delete castingStatus.dataset.active;
+}
+
 function stopCamera(message = 'Camera stopped. You can start again.'): void {
   session += 1; // Invalidates pending camera requests and frame callbacks.
   cancelAnimationFrame(frameId);
@@ -244,25 +250,21 @@ function trackFrame(activeSession: number): void {
       if (startedHands.length > 0) {
         clearCastResult();
         const labels = startedHands.map((hand) => hand.label).join(' + ');
-        castingStatus.textContent = `Casting started · ${labels}`;
-        castingStatus.dataset.active = 'true';
+        setCastingStatus(`Casting started · ${labels}`, true);
       } else if (castingHands.length > 0) {
         const labels = castingHands.map((hand) => hand.label).join(' + ');
-        castingStatus.textContent = `Writing path · ${labels}`;
-        castingStatus.dataset.active = 'true';
+        setCastingStatus(`Writing path · ${labels}`, true);
       } else if (pendingHands.length > 0) {
         const correction = pendingHands.find((hand) => hand.releaseCorrection)?.releaseCorrection;
-        castingStatus.textContent = correction ?? 'Show your palm to release';
-        castingStatus.dataset.active = 'true';
+        setCastingStatus(correction ?? 'Show your palm to release', true);
       } else if (cancelledHands.length > 0) {
-        castingStatus.textContent = 'Spell cancelled · show your palm to release';
-        delete castingStatus.dataset.active;
+        setCastingStatus('Spell cancelled · show your palm to release', false);
       } else {
-        const correction = processedHands.hands.find((hand) => hand.correction)?.correction;
-        castingStatus.textContent = count > 0
-          ? `Casting: ${correction ?? 'raise your index finger and curl the others'}`
-          : 'Casting: waiting for a hand';
-        delete castingStatus.dataset.active;
+        const pointing = processedHands.hands.find((hand) => hand.indexRaised);
+        const message = count === 0 ? 'Waiting for a hand'
+          : pointing?.correction ? `Tip: ${pointing.correction}`
+            : pointing ? 'Hold your pointing pose to begin' : 'Point one index finger to draw';
+        setCastingStatus(message, false);
       }
       const message = count > 0
         ? 'Tracking your hands. Move your fingers and watch the landmarks follow.'

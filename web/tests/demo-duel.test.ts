@@ -24,6 +24,7 @@ describe('local practice duel', () => {
     const duel = new DemoDuel();
     expect(duel.cast(1, spell, 100, 100)).toBe(true);
     const attack = duel.attacks[0];
+    expect(ENEMY_WINDUP_MS).toBe(3000);
     expect(attack.releaseAt - attack.startedAt).toBe(ENEMY_WINDUP_MS);
     expect(duel.cast(1, spell, 1000)).toBe(false);
     duel.update(attack.releaseAt - 1);
@@ -43,14 +44,21 @@ describe('local practice duel', () => {
     expect(duel.canCast(0, 'shield', 1200)).toBe(true);
     expect(duel.cast(0, 'shield', 1200)).toBe(true);
     expect(duel.cast(0, 'shield', 1300)).toBe(false);
-    duel.update(3800);
+    duel.update(4600);
+    expect(duel.fighters[0].health).toBe(100);
+  });
+  it('keeps an early reactive shield active through the full fireball warning and travel', () => {
+    const duel = new DemoDuel();
+    duel.cast(1, 'fireball', 100);
+    duel.cast(0, 'shield', 100);
+    duel.update(3900);
     expect(duel.fighters[0].health).toBe(100);
   });
   it('does not block attacks after shield expiration', () => {
     const duel = new DemoDuel();
     duel.cast(1, 'shield', 0);
-    duel.cast(0, 'fireball', 3000);
-    duel.update(5000);
+    duel.cast(0, 'fireball', 4300);
+    duel.update(6000);
     expect(duel.fighters[1].health).toBe(80);
   });
   it('ends the duel and clears effects and cooldowns on restart', () => {

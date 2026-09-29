@@ -1,7 +1,8 @@
 export type Spell = 'fireball' | 'shield' | 'lightning';
 export type Side = 0 | 1;
 export const CAST_COOLDOWN_MS = 900;
-export const ENEMY_WINDUP_MS = 2200;
+export const ENEMY_WINDUP_MS = 3000;
+const SHIELD_DURATION_MS = 4300;
 export interface Fighter { health: number; shieldUntil: number; castAt: number; shieldAt: number; }
 export interface Attack { side: Side; spell: Exclude<Spell, 'shield'>; startedAt: number; releaseAt: number; impactAt: number; announcedRelease: boolean; }
 
@@ -32,7 +33,7 @@ export class DemoDuel {
     fighter.castAt = now;
     if (spell === 'shield') {
       fighter.shieldAt = now;
-      fighter.shieldUntil = now + 3500;
+      fighter.shieldUntil = now + SHIELD_DURATION_MS;
       this.message = `${side === 0 ? 'Berik' : 'Alisher'} raises a shield.`;
     } else {
       const windup = side === 1 ? Math.max(ENEMY_WINDUP_MS, releaseDelay) : releaseDelay;

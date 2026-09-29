@@ -57,7 +57,7 @@ The initial files are:
 
 The preview is mirrored, while the landmark data passed to `processHands` uses the original camera coordinates. Results also arrive when no hands are detected. Handedness is a model classification, not a persistent identity for a hand across frames.
 
-The first custom casting gesture is a raised index finger. `processHands` checks that the index extends above the hand while the middle, ring, and pinky fingers are curled. The pose must remain stable for four frames before `justStarted` is emitted. When the pose ends, the stroke enters a pending release state; the user must show all five fingers in a stable, camera-facing palm for four frames to emit `justReleased`. A casting hand is highlighted in gold and labeled in the readout. Diagnostic fields provide concrete corrections for both casting and release poses.
+The first custom casting gesture is a straightened index finger. `processHands` checks that the index is extended while the middle, ring, and pinky fingers are curled; the thumb may rest naturally and the wrist may rotate while drawing. The pose must remain stable for about 90 ms before `justStarted` is emitted. When the pose ends, the stroke enters a pending release state; the user must extend the four non-thumb fingers in a stable, camera-facing palm for about 90 ms to emit `justReleased`. A casting hand is highlighted in gold and labeled in the readout. Diagnostic fields provide concrete corrections for both casting and release poses.
 
 While casting, the index fingertip writes a gold path on a dedicated canvas over the webcam preview. The recorder keeps both raw timestamped points and a filtered path. Recognition corrects for the video aspect ratio, then compares aligned outlines as well as topology, corners, closure, and circle geometry for the sample triangle, circle, and lightning templates. A brief tracking or pose gap can be recovered; longer gaps and release timeouts cancel the pending attempt. A persistent result card reports **SPELL CAST**, **ALMOST**, **CAST FAILED**, or **CAST CANCELLED** with a correction when available. The shown match score is a heuristic and is not a calibrated probability.
 
@@ -267,10 +267,10 @@ Webcam `spell-cast` events also trigger Berik's visuals: `rune.triangle` → Fir
 mapping; the existing spell payloads and recognition names are unchanged.
 
 `src/duel/demo-duel.ts` contains isolated local demo rules (100 health, 20 fireball
-damage, 15 lightning damage, 900 ms cast cooldown, 3.5-second one-hit shield).
+damage, 15 lightning damage, 900 ms cast cooldown, 4.3-second one-hit shield).
 `duel-view.ts` loads assets and renders these rules. A backend integration should
 replace the local model with authoritative server state. The opponent attacks after
-a short opening delay and then alternates fireball and lightning. Its visible rune charges for 2.2 seconds before release, giving the player time to draw and release a shield. A defensive shield can bypass an offensive cooldown during an incoming attack. The opponent spell buttons trigger extra practice attacks. Logout resets the duel; hidden pages pause it.
+a short opening delay and then alternates fireball and lightning. Its visible rune charges for 3 seconds before release, giving the player time to draw and release a shield. A defensive shield can bypass an offensive cooldown during an incoming attack. The opponent spell buttons trigger extra practice attacks. Logout resets the duel; hidden pages pause it.
 The practice duel ends at zero health and offers Restart duel.
 
 Pause freezes the duel clock, projectiles, shields, and cooldowns; webcam spell

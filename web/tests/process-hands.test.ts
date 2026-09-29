@@ -123,7 +123,44 @@ describe('raised-index casting recognition', () => {
     expect(open.otherFingersCurled).toBe(false);
     expect(open.correction).toContain('Curl');
     expect(bent.indexRaised).toBe(false);
-    expect(bent.correction).toContain('Raise');
+    expect(bent.correction).toContain('Straighten');
+  });
+
+  it('lets the thumb rest naturally during pointing and palm release', () => {
+    const raised = resultFor({ label: 'Right', kind: 'raised' });
+    for (const points of [raised.landmarks[0], raised.worldLandmarks[0]]) {
+      points[4] = { x: 0.12, y: 0.56, z: 0 };
+    }
+    for (const time of [0, 33, 66]) processHands(raised, time);
+    const pointing = processHands(raised, 99).hands[0];
+    expect(pointing.thumbRelaxed).toBe(false);
+    expect(pointing.justStarted).toBe(true);
+
+    const open = resultFor({ label: 'Right', kind: 'open' });
+    for (const points of [open.landmarks[0], open.worldLandmarks[0]]) {
+      points[4] = { x: 0.47, y: 0.67, z: 0 };
+    }
+    expect(processHands(open, 132).hands[0].justEnded).toBe(true);
+    for (const time of [165, 198]) processHands(open, time);
+    const released = processHands(open, 231).hands[0];
+    expect(released.allFingersExtended).toBe(false);
+    expect(released.releaseFingersExtended).toBe(true);
+    expect(released.justReleased).toBe(true);
+  });
+
+  it('keeps a sideways pointing index active while the wrist rotates', () => {
+    const rotated = resultFor({ label: 'Right', kind: 'raised' });
+    for (const points of [rotated.landmarks[0], rotated.worldLandmarks[0]]) {
+      for (const point of points) {
+        const x = point.x;
+        point.x = 1 - point.y;
+        point.y = x;
+      }
+    }
+    for (const time of [0, 33, 66]) processHands(rotated, time);
+    const state = processHands(rotated, 99).hands[0];
+    expect(state.indexRaised).toBe(true);
+    expect(state.justStarted).toBe(true);
   });
 
   it('enters pending release after the pose is lost for 100 ms', () => {

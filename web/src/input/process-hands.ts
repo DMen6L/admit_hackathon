@@ -21,7 +21,6 @@ const PALM_HOLD_MS = 90;
 const TRACKING_GRACE_MS = 220;
 const RESUME_WINDOW_MS = 350;
 const RELEASE_TIMEOUT_MS = 1500;
-const INDEX_VERTICAL_MARGIN = 0.10;
 const INDEX_EXTENSION_RATIO = 1.08;
 const CURLED_FINGER_RATIO = 1.08;
 const THUMB_PALM_RATIO = 1.25;
@@ -38,6 +37,7 @@ export interface CastingDiagnostics {
   correction?: string;
   extendedFingerCount: number;
   allFingersExtended: boolean;
+  releaseFingersExtended: boolean;
   palmFacingCamera: boolean;
   releasePose: boolean;
   releaseCorrection?: string;
@@ -133,14 +133,13 @@ function palmFacingCamera(points: Point[]): boolean {
 }
 
 function correctionFor(diagnostics: CastingDiagnostics): string | undefined {
-  if (!diagnostics.indexRaised) return 'Raise your index finger';
+  if (!diagnostics.indexRaised) return 'Straighten your index finger';
   if (!diagnostics.otherFingersCurled) return 'Curl your middle, ring, and pinky fingers';
-  if (!diagnostics.thumbRelaxed) return 'Relax your thumb toward your palm';
   return undefined;
 }
 
 function releaseCorrectionFor(diagnostics: CastingDiagnostics): string | undefined {
-  if (!diagnostics.allFingersExtended) return 'Extend all five fingers to release';
+  if (!diagnostics.releaseFingersExtended) return 'Extend your four fingers to release';
   if (!diagnostics.palmFacingCamera) return 'Turn your palm toward the camera';
   return undefined;
 }
@@ -160,15 +159,14 @@ export function processHands(
   const hands = results.landmarks.map((landmarks, handIndex) => {
     const world = results.worldLandmarks[handIndex];
     const metricPoints = world?.length === landmarks.length ? world : landmarks;
-    const imagePoints = landmarks;
     const handScale = distance(metricPoints[WRIST], metricPoints[MIDDLE_MCP]);
-    const imageHandScale = distance(imagePoints[WRIST], imagePoints[MIDDLE_MCP]);
     const indexTipDistance = distance(metricPoints[WRIST], metricPoints[INDEX_TIP]);
     const indexPipDistance = distance(metricPoints[WRIST], metricPoints[INDEX_PIP]);
-    const indexRaised = imagePoints[INDEX_PIP].y - imagePoints[INDEX_TIP].y
-      > imageHandScale * INDEX_VERTICAL_MARGIN
-      && imagePoints[INDEX_MCP].y - imagePoints[INDEX_PIP].y > imageHandScale * 0.02
-      && indexTipDistance > indexPipDistance * INDEX_EXTENSION_RATIO;
+    // The pointing hand may rotate while tracing a rune. Judge joint extension
+    // without requiring the fingertip to stay above the knuckle on screen.
+    const indexRaised = indexTipDistance > indexPipDistance * INDEX_EXTENSION_RATIO
+      && distance(metricPoints[INDEX_MCP], metricPoints[INDEX_TIP])
+        > distance(metricPoints[INDEX_MCP], metricPoints[INDEX_PIP]) * 1.35;
 
     const curled = [
       fingerIsCurled(metricPoints, MIDDLE_PIP, MIDDLE_TIP, handScale),
@@ -192,8 +190,9 @@ export function processHands(
       && distance(metricPoints[THUMB_TIP], metricPoints[INDEX_MCP]) > handScale * 0.55;
     const extendedFingerCount = extended.filter(Boolean).length + (thumbExtended ? 1 : 0);
     const allFingersExtended = extendedFingerCount === 5;
+    const releaseFingersExtended = extended.every(Boolean);
     const palmIsFacingCamera = palmFacingCamera(metricPoints);
-    const releasePose = allFingersExtended && palmIsFacingCamera;
+    const releasePose = releaseFingersExtended && palmIsFacingCamera;
     const diagnostics: CastingDiagnostics = {
       indexRaised,
       otherFingersCurled,
@@ -201,12 +200,13 @@ export function processHands(
       curledFingerCount,
       extendedFingerCount,
       allFingersExtended,
+      releaseFingersExtended,
       palmFacingCamera: palmIsFacingCamera,
       releasePose,
     };
     diagnostics.correction = correctionFor(diagnostics);
     diagnostics.releaseCorrection = releaseCorrectionFor(diagnostics);
-    const qualifies = indexRaised && otherFingersCurled && thumbRelaxed;
+    const qualifies = indexRaised && otherFingersCurled;
     const label = handLabel(results, handIndex);
     const wrist = landmarks[WRIST];
     const available = [...previousCasting.values()]
