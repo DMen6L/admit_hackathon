@@ -23,7 +23,22 @@ npm run dev
 
 Open the localhost URL shown in the terminal, click **Start camera**, and allow webcam access. Use **Stop camera** to release the camera. Camera access requires localhost or HTTPS; opening the HTML file directly is not the supported development workflow.
 
-The prototype opens on a sign-in screen. Use `mage@wizard.dev` with password `Spellbound1`. This local demo account exists only to exercise the complete interface and session flow; it stores no password and should be replaced by a server-backed implementation before real accounts are introduced.
+## Run the API and PostgreSQL
+
+From the repository root, copy `.env.example` to `.env`, replace the development secrets, and start the services:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+The API is available at `http://localhost:8000`, PostgreSQL at `localhost:5432`, and migrations run automatically when the API container starts. Create an account in the browser's registration mode, or run `python scripts/smoke_auth.py` to create a test account and verify `/api/auth/me`. The frontend calls the database-backed API at `http://127.0.0.1:8000` by default; set `VITE_API_BASE_URL` before starting Vite to use another API origin.
+
+If another local PostgreSQL service already owns host port `5432`, set `POSTGRES_PORT=5433` in `.env` (the API still uses PostgreSQL's internal Compose port `5432`).
+
+The sign-in screen uses the API-backed account service. Start the backend with `docker compose up --build`, then create an account from **Create an account**. Passwords are hashed by the API and never stored in the browser.
+
+The backend exposes `POST /api/auth/register`, `POST /api/auth/login`, and `GET /api/auth/me`. Copy `.env.example` to `.env` and replace the development JWT secret and PostgreSQL password before sharing the service. The frontend uses `VITE_API_BASE_URL` when supplied, otherwise `http://127.0.0.1:8000`.
 
 `npm run setup` downloads Google's pretrained `hand_landmarker.task` model and copies the WebAssembly runtime from the installed MediaPipe package. Both are served locally by the app. The generated assets are ignored by Git; rerun setup after installing or updating dependencies. Players do not need Node.js, Python, or a local installation.
 
@@ -37,6 +52,8 @@ The initial files are:
 - [`web/src/spells/spell-resolver.ts`](web/src/spells/spell-resolver.ts): converts confirmed shape IDs into versioned, JSON-safe spell messages and configurable frontend spell/rune definitions.
 - [`web/src/ui/cast-result.ts`](web/src/ui/cast-result.ts): testable presentation states for successful, near-miss, failed, and cancelled casts.
 - [`web/index.html`](web/index.html) and [`web/src/style.css`](web/src/style.css): the basic tracking screen.
+- [`src/admit_hackathon/api/`](src/admit_hackathon/api/): FastAPI authentication routes, UUID user model, Argon2 password verification, and JWT handling.
+- [`compose.yaml`](compose.yaml) and [`migrations/`](migrations/): PostgreSQL service configuration and the users-table migration.
 
 The preview is mirrored, while the landmark data passed to `processHands` uses the original camera coordinates. Results also arrive when no hands are detected. Handedness is a model classification, not a persistent identity for a hand across frames.
 
@@ -50,7 +67,7 @@ Confirmed matches are converted through `resolveSpell` into a `spell_cast` paylo
 
 This first prototype uses CPU inference on the main thread. It establishes the input pipeline, deliberate release gesture, and configurable shape matching; a broader gesture vocabulary, combat, and a playable scenario are not implemented yet. Move inference to a worker if it interferes with rendering as the game grows.
 
-Run `npm test` and `npm run build` from `web/` to validate gesture logic and produce `web/dist/`. Run `npm run preview` to inspect that build locally. The existing Python scaffold is independent of this browser prototype.
+Run `npm test` and `npm run build` from `web/` to validate frontend auth and gesture logic and produce `web/dist/`. Run `npm run preview` to inspect that build locally. Run `uv run --extra test pytest` from the repository root for backend auth tests.
 
 References: [MediaPipe web integration](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker/web_js), [official hand model](https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker#models), and [Vite setup](https://vite.dev/guide/).
 
