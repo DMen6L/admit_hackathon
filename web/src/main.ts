@@ -2,11 +2,15 @@ import './style.css';
 import { DrawingUtils, HandLandmarker } from '@mediapipe/tasks-vision';
 import { createHandTracker } from './vision/hand-tracker';
 import { processHands, resetHandProcessing } from './input/process-hands';
+import { IndexPathRecorder } from './drawing/path-recorder';
 
 const video = document.querySelector<HTMLVideoElement>('#camera')!;
+const pathCanvas = document.querySelector<HTMLCanvasElement>('#path')!;
 const canvas = document.querySelector<HTMLCanvasElement>('#landmarks')!;
+const pathContext = pathCanvas.getContext('2d')!;
 const context = canvas.getContext('2d')!;
 const drawing = new DrawingUtils(context);
+const pathRecorder = new IndexPathRecorder();
 const startButton = document.querySelector<HTMLButtonElement>('#start')!;
 const stopButton = document.querySelector<HTMLButtonElement>('#stop')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
@@ -36,6 +40,8 @@ function stopCamera(message = 'Camera stopped. You can start again.'): void {
   video.srcObject = null;
   previousVideoTime = -1;
   resetHandProcessing();
+  pathRecorder.reset();
+  pathContext.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
   context.clearRect(0, 0, canvas.width, canvas.height);
   placeholder.hidden = false;
   handCount.textContent = '0 hands detected';
@@ -44,6 +50,39 @@ function stopCamera(message = 'Camera stopped. You can start again.'): void {
   startButton.disabled = false;
   stopButton.disabled = true;
   setStatus(message);
+}
+
+function drawRecordedPaths(): void {
+  pathContext.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
+  const lineWidth = Math.max(3, pathCanvas.width * 0.008);
+
+  for (const stroke of pathRecorder.getStrokes()) {
+    if (stroke.points.length === 0) continue;
+
+    pathContext.save();
+    pathContext.strokeStyle = '#ffd166';
+    pathContext.fillStyle = '#ffd166';
+    pathContext.lineWidth = lineWidth;
+    pathContext.lineCap = 'round';
+    pathContext.lineJoin = 'round';
+    pathContext.shadowColor = 'rgba(255, 209, 102, 0.75)';
+    pathContext.shadowBlur = lineWidth * 1.5;
+
+    if (stroke.points.length === 1) {
+      const point = stroke.points[0];
+      pathContext.beginPath();
+      pathContext.arc(point.x * pathCanvas.width, point.y * pathCanvas.height, lineWidth / 2, 0, Math.PI * 2);
+      pathContext.fill();
+    } else {
+      pathContext.beginPath();
+      pathContext.moveTo(stroke.points[0].x * pathCanvas.width, stroke.points[0].y * pathCanvas.height);
+      for (const point of stroke.points.slice(1)) {
+        pathContext.lineTo(point.x * pathCanvas.width, point.y * pathCanvas.height);
+      }
+      pathContext.stroke();
+    }
+    pathContext.restore();
+  }
 }
 
 function drawCastingIndicator(landmarks: Array<{ x: number; y: number }>): void {
@@ -92,6 +131,8 @@ function trackFrame(activeSession: number): void {
       if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
+        pathCanvas.width = video.videoWidth;
+        pathCanvas.height = video.videoHeight;
         preview.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
       }
 
@@ -100,6 +141,8 @@ function trackFrame(activeSession: number): void {
       context.clearRect(0, 0, canvas.width, canvas.height);
 
       const processedHands = processHands(results, timestampMs);
+      pathRecorder.update(processedHands.hands, results.landmarks);
+      drawRecordedPaths();
       for (const [handIndex, landmarks] of results.landmarks.entries()) {
         const casting = processedHands.hands[handIndex];
         drawing.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, {
@@ -121,7 +164,7 @@ function trackFrame(activeSession: number): void {
         castingStatus.dataset.active = 'true';
       } else if (castingHands.length > 0) {
         const labels = castingHands.map((hand) => hand.label).join(' + ');
-        castingStatus.textContent = `Casting active · ${labels}`;
+        castingStatus.textContent = `Writing path · ${labels}`;
         castingStatus.dataset.active = 'true';
       } else {
         const correction = processedHands.hands.find((hand) => hand.correction)?.correction;
