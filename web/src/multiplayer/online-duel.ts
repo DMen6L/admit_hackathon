@@ -3,6 +3,8 @@ import type { ApiAuthService } from '../auth/auth-service';
 import type { SpellCastPayload } from '../spells/spell-resolver';
 import { RoomClient } from './room-client';
 import type { MatchState } from './protocol';
+import { spellAudio } from '../audio/spell-audio';
+import { confirmedSpellSounds } from '../audio/online-sounds';
 
 const WINDUP_MS = 3000;
 const CAST_COOLDOWN_MS = 900;
@@ -160,6 +162,7 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
     seat = body.seat;
     client = new RoomClient(auth.apiBaseUrl(), code, token, {
       onState(next) {
+        confirmedSpellSounds(state, next).forEach((spell) => spellAudio.play(spell));
         connected = true;
         state = next;
         status.textContent = next.phase === 'waiting' ? `Room ${code} · waiting for opponent`

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#091321" />
+    <title>Learn to cast · Wizard Duel</title>
+  </head>
+  <body class="tutorial-page">
+    <p id="tutorial-session" role="status">Opening the academy…</p>
+    <main id="tutorial-screen" class="tutorial-shell" hidden>
+      <header class="tutorial-header">
+        <a class="lobby-brand" href="./lobby.html"><span class="lobby-brand__mark" aria-hidden="true">✦</span> Wizard Duel</a>
+        <div class="tutorial-header__right"><span>Academy / Casting lesson</span><button id="sound-toggle" type="button" aria-pressed="true">Sound on</button><a href="./lobby.html">Leave tutorial ↗</a></div>
+      </header>
+
+      <section class="tutorial-intro">
+        <div><p class="eyebrow">The Arcane Academy</p><h1>Learn the language of magic.</h1><p>Seven short lessons. Cast each rune to unlock the next. Mistakes are part of practice.</p></div>
+        <img src="./assets/game/berik/idle-01.svg" alt="" aria-hidden="true" />
+      </section>
+
+      <div class="tutorial-progress"><span id="lesson-number">Lesson 1 of 7</span><progress id="lesson-progress" max="7" value="1" aria-label="Tutorial progress"></progress><span id="lesson-progress-label">0 completed</span></div>
+
+      <div class="tutorial-layout">
+        <section class="tutorial-lesson" aria-labelledby="lesson-title">
+          <p class="eyebrow" id="lesson-kicker">01 / Foundation</p>
+          <div class="tutorial-lesson__rune" id="lesson-glyph" aria-hidden="true">━</div>
+          <h2 id="lesson-title"></h2>
+          <p id="lesson-instruction"></p>
+          <div class="tutorial-effect"><span>Spell effect</span><strong id="lesson-effect"></strong></div>
+          <div class="tutorial-tip"><strong>Instructor's tip</strong><p id="lesson-tip"></p></div>
+          <div id="threat-panel" class="tutorial-threat" hidden><span>△</span><div><strong>Incoming fireball</strong><p>Cast Shield before impact</p><progress id="threat-progress" max="3000" value="0" aria-label="Enemy fireball charge"></progress></div></div>
+          <button id="start-threat" class="tutorial-primary" type="button" hidden>Start incoming attack →</button>
+          <div id="lesson-feedback" class="tutorial-feedback" role="status" aria-live="polite"></div>
+          <button id="continue-lesson" class="tutorial-primary" type="button" hidden>Continue to next lesson →</button>
+          <div id="tutorial-finish" class="tutorial-finish" hidden><a href="./battle.html?mode=practice">Practice against the bot →</a><a href="./lobby.html">Back to lobby</a></div>
+        </section>
+
+        <section class="tutorial-practice" aria-label="Cast your rune">
+          <div class="tutorial-practice__heading"><div><p class="eyebrow">Casting surface</p><h2>Try it here</h2></div><span id="input-mode-label">Mouse or touch ready</span></div>
+          <p class="tutorial-practice__hint">Draw with a mouse or finger, then release. Or start your camera to cast with your hand.</p>
+          <div id="tutorial-scene" class="tutorial-scene" aria-label="Arena preview">
+            <img class="tutorial-scene__player" src="./assets/game/berik/idle-01.svg" alt="Your wizard" />
+            <span class="tutorial-scene__cast" id="scene-rune" aria-hidden="true">━</span>
+            <div class="tutorial-scene__warning" aria-hidden="true">△</div>
+            <img class="tutorial-scene__opponent" src="./assets/game/alisher/idle-01.svg" alt="Training opponent" />
+            <span class="tutorial-scene__caption" id="scene-caption">Cast Spark to strike the training opponent.</span>
+          </div>
+          <div class="tutorial-pad"><svg id="rune-guide" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline id="rune-guide-path" /></svg><canvas id="tutorial-pad" aria-label="Draw the current rune here with a mouse or touch"></canvas><span class="tutorial-pad__label">Draw here · release to cast</span></div>
+          <div class="tutorial-camera-controls"><button id="tutorial-camera-start" type="button">Start camera</button><button id="tutorial-camera-stop" type="button" disabled>Stop camera</button><span id="tutorial-camera-status" role="status">Camera is optional.</span></div>
+          <div id="tutorial-camera-preview" class="tutorial-camera-preview" hidden><video id="tutorial-video" autoplay muted playsinline aria-label="Mirrored camera view"></video><canvas id="tutorial-camera-path" aria-hidden="true"></canvas></div>
+          <p class="tutorial-privacy">Camera frames stay on this device. Point one index finger to draw; open your palm to release.</p>
+        </section>
+      </div>
+    </main>
+    <script type="module" src="/src/tutorial/tutorial-page.ts"></script>
+  </body>
+</html>

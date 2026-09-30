@@ -1,6 +1,7 @@
 import { sampleAnimation, type AssetManifest, type EffectClip } from '../assets/animation';
 import { CAST_COOLDOWN_MS, DemoDuel, demoSpell, type Side, type Spell } from './demo-duel';
 import type { SpellCastPayload } from '../spells/spell-resolver';
+import { spellAudio } from '../audio/spell-audio';
 import './duel.css';
 
 export function mountDuel(root: HTMLElement): { setParticipants(playerName: string, opponentName?: string): void; reset(): void; dispose(): void } {
@@ -82,6 +83,7 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
     const eventFrame = clip.events.find((event) => event.name === 'projectile-release')!.frame;
     const delay = clip.frames.slice(0, eventFrame).reduce((sum, frame) => sum + frame.durationMs, 0);
     if (model.cast(side, spell, clock, delay)) {
+      if (side === 0 || model.lastEnemyMiscastAt !== clock) spellAudio.play(spell);
       if (side === 1 || spell === 'time-lock') {
         const enemyAttack = model.attacks.find((attack) => attack.side === 1);
         if (enemyAttack) nextEnemyCastAt = enemyAttack.impactAt + 3200;

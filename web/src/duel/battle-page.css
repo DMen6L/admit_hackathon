@@ -13,6 +13,7 @@
 .battle-shell .game-header p:last-child { margin: 4px 0 0; font-size: .85rem; }
 .battle-shell a { color: #adcaf2; text-underline-offset: 4px; }
 .battle-shell .account-menu { border: 0; gap: 18px; }
+.battle-shell #sound-toggle { border-color: #698783; color: #c9e6d8; font-size: .76rem; }
 .battle-shell .duel { grid-column: 1; border-radius: 6px; border-color: #344663; background: #0c1422; margin: 0; box-shadow: 0 20px 70px #0006; }
 .battle-shell .duel-head { padding: 24px 24px 12px; color: #ffe099; }
 .battle-shell .duel-head span { font-size: .7rem; letter-spacing: .1em; }

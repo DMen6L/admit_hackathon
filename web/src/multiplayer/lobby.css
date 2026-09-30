@@ -15,6 +15,14 @@
 .lobby-intro h1 { max-width: 780px; margin: 12px 0 12px; color: #fff1cb; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 500; letter-spacing: -.045em; line-height: 1.08; text-wrap: balance; }
 .lobby-intro > p:last-child { max-width: 560px; margin: 0; color: #d0dbe9; font-size: 1.02rem; }
 .lobby-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.lobby-tutorial { display: flex; align-items: center; gap: 19px; margin: 0 0 20px; border: 1px solid #a8d9c577; border-radius: 14px; padding: 18px 23px; background: linear-gradient(100deg, #214337, #173545 50%, #142239); color: #eefbf5; text-decoration: none; transition: border-color .2s, transform .2s; }
+.lobby-tutorial:hover { border-color: #aff3d1; transform: translateY(-2px); }
+.lobby-tutorial__icon { display: grid; flex: 0 0 55px; width: 55px; height: 55px; place-items: center; border: 1px solid #b0f1cd80; border-radius: 50%; color: #b5f5d1; font-size: 1.8rem; box-shadow: 0 0 30px #63d9a83a; }
+.lobby-tutorial > span:nth-child(2) { display: grid; gap: 3px; }
+.lobby-tutorial small { color: #9ed5c1; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.lobby-tutorial strong { font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1.1rem, 2vw, 1.45rem); font-weight: 500; }
+.lobby-tutorial em { color: #bdd0d8; font-size: .8rem; font-style: normal; }
+.lobby-tutorial__arrow { margin-left: auto; color: #b6eed0; font-size: 1.5rem; }
 .mode-card { display: grid; grid-template-columns: 34% minmax(0, 1fr); min-height: 370px; overflow: hidden; border: 1px solid #435571; border-radius: 16px; background: linear-gradient(145deg, #182b40, #0e1929 72%); box-shadow: 0 16px 48px #0004; transition: border-color .2s, transform .2s; }
 .mode-card:hover { border-color: #c3a467; transform: translateY(-2px); }
 .mode-card--friend { background: linear-gradient(145deg, #26314a, #111b2f 72%); }

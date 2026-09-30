@@ -16,6 +16,7 @@ import './duel/battle-page.css';
 import { ApiAuthService } from './auth/auth-service';
 import { mountOnlineDuel } from './multiplayer/online-duel';
 import { roomCodeFromSearch } from './multiplayer/room-code';
+import { mountSoundToggle } from './audio/spell-audio';
 
 interface DevDiagnostics {
   onFrame(results: HandLandmarkerResult, processed: HandProcessingResult, timestampMs: number,
@@ -50,6 +51,7 @@ const placeholder = document.querySelector<HTMLParagraphElement>('#placeholder')
 const preview = document.querySelector<HTMLDivElement>('.preview')!;
 const cameraViewToggle = document.querySelector<HTMLButtonElement>('#camera-view-toggle')!;
 const spellbook = mountSpellbook(document.querySelector<HTMLElement>('.tracker')!, Boolean(roomCodeFromSearch(window.location.search)));
+const unmountSound = mountSoundToggle(document.querySelector<HTMLButtonElement>('#sound-toggle')!);
 
 cameraViewToggle.addEventListener('click', () => {
   const showCamera = preview.dataset.view !== 'camera';
@@ -360,7 +362,7 @@ async function startCamera(): Promise<void> {
 
 startButton.addEventListener('click', () => { void startCamera(); });
 stopButton.addEventListener('click', () => stopCamera());
-window.addEventListener('pagehide', () => { stopCamera(); duel?.dispose(); });
+window.addEventListener('pagehide', () => { stopCamera(); duel?.dispose(); unmountSound(); });
 
 let duel: { reset(): void; dispose(): void } | undefined;
 const auth = new ApiAuthService(globalThis.fetch.bind(globalThis), window.localStorage, window.sessionStorage);
@@ -407,6 +409,7 @@ if (import.meta.env.DEV) {
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     spellbook.dispose();
+    unmountSound();
     duel?.dispose();
     diagnostics?.dispose();
     stopCamera();
