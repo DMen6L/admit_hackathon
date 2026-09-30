@@ -73,6 +73,45 @@ class Match:
     casts: list[CastEvent] = field(default_factory=list)
     winner: int | None = None
 
+    @classmethod
+    def from_snapshot(cls, snapshot: dict) -> "Match":
+        """Rehydrate an authoritative match persisted by ``snapshot``."""
+        game = cls()
+        for raw_player in snapshot.get("players", []):
+            player = Fighter(
+                user_id=UUID(str(raw_player["userId"])),
+                login=str(raw_player["login"]),
+                display_name=str(raw_player.get("displayName") or raw_player["login"]),
+                health=int(raw_player.get("health", HEALTH)),
+                cast_at_ms=int(raw_player.get("castAtMs", -10_000_000_000_000)),
+                shield_at_ms=int(raw_player.get("shieldAtMs", -10_000_000_000_000)),
+                shield_until_ms=int(raw_player.get("shieldUntilMs", 0)),
+            )
+            game.players.append(player)
+        game.phase = str(snapshot.get("phase", "waiting"))
+        game.revision = int(snapshot.get("revision", 0))
+        game.winner = snapshot.get("winner") if isinstance(snapshot.get("winner"), int) else None
+        game.attacks = [
+            Attack(
+                seat=int(raw["seat"]),
+                spell_id=str(raw["spellId"]),
+                started_at_ms=int(raw["startedAtMs"]),
+                release_at_ms=int(raw["releaseAtMs"]),
+                impact_at_ms=int(raw["impactAtMs"]),
+            )
+            for raw in snapshot.get("attacks", [])
+        ]
+        game.impacts = [
+            Impact(
+                seat=int(raw["seat"]),
+                spell_id=str(raw["spellId"]),
+                at_ms=int(raw["atMs"]),
+                blocked=bool(raw["blocked"]),
+            )
+            for raw in snapshot.get("impacts", [])
+        ]
+        return game
+
     def add_player(self, user_id: UUID, login: str, display_name: str | None = None) -> int:
         if any(player.user_id == user_id for player in self.players):
             raise CastRejected("already_joined")
@@ -166,7 +205,9 @@ class Match:
             "type": "state", "v": 1, "revision": self.revision, "serverTimeMs": now_ms,
             "phase": self.phase,
             "players": [
-                {"seat": seat, "login": player.login, "displayName": player.display_name, "health": player.health,
+                {"seat": seat, "userId": str(player.user_id), "login": player.login,
+                 "displayName": player.display_name, "health": player.health,
+                 "castAtMs": player.cast_at_ms, "shieldAtMs": player.shield_at_ms,
                  "castReadyAtMs": player.cast_at_ms + COOLDOWN_MS,
                  "shieldReadyAtMs": player.shield_at_ms + COOLDOWN_MS,
                  "shieldUntilMs": player.shield_until_ms, "slowNextAttack": player.slow_next_attack}

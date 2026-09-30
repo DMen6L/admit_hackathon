@@ -104,3 +104,17 @@ def test_time_lock_delays_current_or_next_attack_and_is_a_confirmed_cast() -> No
     another.cast(1, "rune.line", 2000)
     assert another.attacks[0].release_at_ms - 2000 == WINDUP_MS + TIME_LOCK_DELAY_MS
     assert another.players[1].slow_next_attack is False
+
+def test_match_snapshot_round_trip_preserves_authoritative_state() -> None:
+    game = match()
+    game.cast(0, "rune.triangle", 1000)
+    game.cast(1, SHIELD, 1000)
+    snapshot = game.snapshot(1000)
+
+    restored = Match.from_snapshot(snapshot)
+
+    assert restored.revision == game.revision
+    assert restored.phase == game.phase
+    assert [player.user_id for player in restored.players] == [player.user_id for player in game.players]
+    assert restored.attacks[0].impact_at_ms == game.attacks[0].impact_at_ms
+    assert restored.players[1].shield_until_ms == game.players[1].shield_until_ms

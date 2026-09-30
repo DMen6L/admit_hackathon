@@ -17,6 +17,7 @@ services:
 
   api:
     build: .
+    command: ["sh", "-c", "alembic upgrade head && uvicorn admit_hackathon.api.main:app --host 0.0.0.0 --port 8000"]
     environment:
       MAGIC_DATABASE_URL: ${MAGIC_DATABASE_URL:-postgresql+psycopg://magic:magic@postgres:5432/magic}
       MAGIC_JWT_SECRET: ${MAGIC_JWT_SECRET:-development-only-change-this-secret}

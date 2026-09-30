@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Integer, String, Text, text
+from sqlalchemy import Boolean, DateTime, Integer, JSON, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -28,5 +28,48 @@ class User(Base):
         DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False,
     )
     updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False,
+    )
+
+
+class MultiplayerRoom(Base):
+    __tablename__ = "multiplayer_rooms"
+
+    code: Mapped[str] = mapped_column(String(6), primary_key=True)
+    phase: Mapped[str] = mapped_column(String(16), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
+    snapshot: Mapped[dict] = mapped_column(JSON, nullable=False)
+    winner: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    stats_recorded: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False,
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class MultiplayerRoomPlayer(Base):
+    __tablename__ = "multiplayer_room_players"
+
+    room_code: Mapped[str] = mapped_column(String(6), primary_key=True)
+    seat: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), nullable=False, index=True)
+    login: Mapped[str] = mapped_column(String(64), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    disconnected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class MultiplayerRoomEvent(Base):
+    __tablename__ = "multiplayer_room_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    room_code: Mapped[str] = mapped_column(String(6), nullable=False, index=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False,
     )

@@ -4,7 +4,7 @@
 
 Ship a two-player, browser-to-browser duel through one authoritative server. Each player signs in, one creates a private room, the other joins with its code, and both see the same health, cast warning, shield, impact, and winner. Keep `/battle.html` practice playable while online mode is built. The browser continues to process webcam frames and recognize gestures locally; the server receives only spell commands, never video or landmarks.
 
-The initial deployment runs **one API process**. Rooms and matches live in its memory and disappear when it restarts. This is a deliberate first milestone, not a claim of horizontal scaling. No public matchmaking, spectator mode, chat, account rankings, or persistent match history in this slice.
+The deployment uses PostgreSQL as the authoritative room store. The API keeps only active WebSocket peers in process memory; room snapshots, seats, and ordered events survive restarts and can be coordinated across replicas. No public matchmaking, spectator mode, chat, account rankings, or persistent match history beyond room events is included in this slice.
 
 ## Ownership and parallel work
 
@@ -38,9 +38,9 @@ Start with the current practice balance: 100 health, fireball 20 damage, lightni
 
 ## Room and connection lifecycle
 
-Room states: `waiting` (creator only) -> `active` (two authenticated seats) -> `finished` (winner or forfeit) -> expired. A room code identifies one room; reconnect is allowed only for its original user. On disconnect, keep the seat for a short grace period (target 15 seconds), then award a forfeit if active. Send clear UI states for waiting, connecting, disconnected/reconnecting, opponent left, and finished. Close stale sockets and expire idle rooms (target 30 minutes). A process restart invalidates all in-memory rooms; clients should show a recovery action.
+Room states: `waiting` (creator only) -> `active` (two authenticated seats) -> `finished` (winner or forfeit) -> expired. A room code identifies one room; reconnect is allowed only for its original user. On disconnect, keep the seat for a short grace period (target 15 seconds), then award a forfeit if active. Send clear UI states for waiting, connecting, disconnected/reconnecting, opponent left, and finished. Close stale sockets and expire idle rooms (target 30 minutes). A process restart reloads the latest persisted snapshot; clients still show a recovery action when a room has expired.
 
-The backend should use one room lock per match (or an equivalent single event loop owner) so simultaneous casts have a deterministic order. If the server later runs multiple workers, move room state and command ordering to a shared coordinator before increasing worker count; sticky sessions alone do not make in-memory authority safe.
+The backend uses a PostgreSQL row lock per room for casts, timer advances, connection transitions, and forfeits, so simultaneous commands have a deterministic order across API replicas. WebSocket peers remain local to each process; each active room refreshes persisted revisions and broadcasts them to its connected local peers.
 
 ## Delivery sequence and acceptance gates
 
@@ -62,8 +62,8 @@ The protocol example is a baseline. Any field additions must preserve `v: 1` cli
 
 ## Implementation status (first slice)
 
-Implemented in this branch: pure server duel engine, private create/join API, first-message JWT room socket, revisioned snapshots, automatic server impacts, 15-second disconnect forfeit, a battle-page room lobby, online renderer, webcam spell adapter, clock-offset ping, and reconnect attempts. Practice mode remains separate. Automated backend and frontend tests cover the core engine, two-client socket exchange, and protocol parsing.
+Implemented in this branch: pure server duel engine, private create/join API, PostgreSQL room/player/event persistence, first-message JWT room socket, revisioned snapshots, automatic server impacts, 15-second disconnect forfeit, a battle-page room lobby, online renderer, webcam spell adapter, clock-offset ping, and reconnect attempts. Practice mode remains separate. Automated backend and frontend tests cover the core engine, two-client socket exchange, and protocol parsing.
 
 Current expansion: online rooms now accept all six recognized spell IDs. The server resolves Twin Flare and Spark damage, Time Lock's 1.5-second delay, shields, and three-second-or-longer attack warnings. Snapshots include recent confirmed cast IDs so both clients can play each spell's audio once without sounding a rejected command. Twin Flare and Spark reuse scaled source effects until dedicated art is available.
 
-Still required before a public multiplayer release: real two-device webcam playtest under throttled networks, a refreshable session strategy for matches longer than the current access-token lifetime, cleanup/rate limits for abandoned or spammed rooms, production origin/host configuration, process-restart recovery, and persistent/shared room coordination before running more than one API worker. These tasks are intentionally not hidden behind the first-slice UI.
+Still required before a public multiplayer release: real two-device webcam playtest under throttled networks, a refreshable session strategy for matches longer than the current access-token lifetime, cleanup/rate limits for abandoned or spammed rooms, production origin/host configuration, and validation with more than one API worker. These tasks are intentionally not hidden behind the first-slice UI.

@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from admit_hackathon.api.db import Base
-from admit_hackathon.api.models import User  # noqa: F401
+from admit_hackathon.api.models import MultiplayerRoom, MultiplayerRoomEvent, MultiplayerRoomPlayer, User  # noqa: F401
 from admit_hackathon.api.settings import get_settings
 
 config = context.config

@@ -48,7 +48,13 @@ def update_profile(
     return profile_response(user)
 
 
-def record_online_result(db: Session, player_ids: tuple[UUID, UUID], winner: int | None) -> None:
+def record_online_result(
+    db: Session,
+    player_ids: tuple[UUID, UUID],
+    winner: int | None,
+    *,
+    commit: bool = True,
+) -> None:
     """Persist one finished room result; caller guards duplicate recording per room."""
     # Atomic increments prevent lost updates if an account finishes two rooms close together.
     for seat, player_id in sorted(enumerate(player_ids), key=lambda item: item[1]):
@@ -60,4 +66,5 @@ def record_online_result(db: Session, player_ids: tuple[UUID, UUID], winner: int
         else:
             values["duels_lost"] = User.duels_lost + 1
         db.execute(update(User).where(User.id == player_id).values(**values))
-    db.commit()
+    if commit:
+        db.commit()
