@@ -56,6 +56,9 @@ def test_two_authenticated_users_join_and_exchange_authoritative_state(monkeypat
                     assert [player["login"] for player in initial["players"]] == ["first", "second"]
                     assert [player["displayName"] for player in initial["players"]] == ["Moon Warden", "Ember Shade"]
                     one.send_json({"type": "cast", "v": 1, "seq": 1, "spellId": "rune.triangle"})
+                    ack = one.receive_json()
+                    assert ack["type"] == "cast_ack"
+                    assert ack["seq"] == 1
                     warning = one.receive_json()
                     assert warning["attacks"][0]["seat"] == 0
                     assert warning["attacks"][0]["releaseAtMs"] - warning["attacks"][0]["startedAtMs"] == 3000
@@ -63,7 +66,9 @@ def test_two_authenticated_users_join_and_exchange_authoritative_state(monkeypat
                     one.send_json({"type": "cast", "v": 1, "seq": 1, "spellId": "rune.triangle"})
                     assert one.receive_json()["code"] == "duplicate"
                     two.send_json({"type": "cast", "v": 1, "seq": 1, "spellId": "rune.circle"})
-                    assert two.receive_json()["players"][1]["shieldUntilMs"] > 0
+                    assert two.receive_json()["type"] == "cast_ack"
+                    shielded = two.receive_json()
+                    assert shielded["players"][1]["shieldUntilMs"] > 0
                     assert one.receive_json()["type"] == "state"
                     clock[0] += 3900
                     impact_one = one.receive_json()
@@ -72,11 +77,13 @@ def test_two_authenticated_users_join_and_exchange_authoritative_state(monkeypat
                     assert impact_one["impacts"][0]["blocked"] is True
                     assert impact_one["players"][1]["health"] == 100
                     one.send_json({"type": "cast", "v": 1, "seq": 2, "spellId": "rune.square"})
+                    assert one.receive_json()["type"] == "cast_ack"
                     locked = one.receive_json()
                     assert locked["casts"][-1]["spellId"] == "rune.square"
                     assert locked["players"][1]["slowNextAttack"] is True
                     assert two.receive_json()["revision"] == locked["revision"]
                     two.send_json({"type": "cast", "v": 1, "seq": 2, "spellId": "rune.line"})
+                    assert two.receive_json()["type"] == "cast_ack"
                     sparked = two.receive_json()
                     assert sparked["attacks"][0]["spellId"] == "rune.line"
                     assert sparked["attacks"][0]["slowed"] is True

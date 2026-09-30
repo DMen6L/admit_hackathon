@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isMatchState, ONLINE_SPELL_IDS, websocketRoomUrl } from '../src/multiplayer/protocol';
+import { isCastAck, isMatchState, ONLINE_SPELL_IDS, websocketRoomUrl } from '../src/multiplayer/protocol';
 import { normalizeRoomCode, roomCodeFromSearch } from '../src/multiplayer/room-code';
 
 describe('multiplayer protocol', () => {
@@ -19,6 +19,14 @@ describe('multiplayer protocol', () => {
     expect(isMatchState({ ...state, casts: null })).toBe(false);
     expect(isMatchState({ type: 'error', v: 1 })).toBe(false);
     expect(ONLINE_SPELL_IDS).toHaveLength(6);
+  });
+
+  it('accepts a server cast acknowledgment and rejects malformed acknowledgments', () => {
+    const ack = { type: 'cast_ack', v: 1, seq: 4, spellId: 'rune.triangle', acceptedAtMs: 1000, revision: 7 };
+    expect(isCastAck(ack)).toBe(true);
+    expect(isCastAck({ ...ack, spellId: 'unknown' })).toBe(false);
+    expect(isCastAck({ ...ack, seq: -1 })).toBe(false);
+    expect(isCastAck({ ...ack, acceptedAtMs: '1000' })).toBe(false);
   });
 });
 

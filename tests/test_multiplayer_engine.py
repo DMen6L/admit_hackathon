@@ -118,3 +118,15 @@ def test_match_snapshot_round_trip_preserves_authoritative_state() -> None:
     assert [player.user_id for player in restored.players] == [player.user_id for player in game.players]
     assert restored.attacks[0].impact_at_ms == game.attacks[0].impact_at_ms
     assert restored.players[1].shield_until_ms == game.players[1].shield_until_ms
+
+    slowed = match()
+    slowed.cast(0, "rune.triangle", 1000)
+    slowed.cast(1, TIME_LOCK, 1500)
+    restored_slowed = Match.from_snapshot(slowed.snapshot(1500))
+    assert restored_slowed.casts[-1].spell_id == TIME_LOCK
+    assert restored_slowed.attacks[0].slowed is True
+
+    queued = match()
+    queued.cast(0, TIME_LOCK, 1000)
+    restored_queued = Match.from_snapshot(queued.snapshot(1000))
+    assert restored_queued.players[1].slow_next_attack is True

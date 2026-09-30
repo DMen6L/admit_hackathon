@@ -4,7 +4,7 @@
 
 Ship a two-player, browser-to-browser duel through one authoritative server. Each player signs in, one creates a private room, the other joins with its code, and both see the same health, cast warning, shield, impact, and winner. Keep `/battle.html` practice playable while online mode is built. The browser continues to process webcam frames and recognize gestures locally; the server receives only spell commands, never video or landmarks.
 
-The deployment uses PostgreSQL as the authoritative room store. The API keeps only active WebSocket peers in process memory; room snapshots, seats, and ordered events survive restarts and can be coordinated across replicas. No public matchmaking, spectator mode, chat, account rankings, or persistent match history beyond room events is included in this slice.
+The deployment uses PostgreSQL for recovery snapshots, seats, and ordered room events. During a duel, one API process keeps the authoritative match in memory and advances it without database work on the timer tick. This first release runs one Railway API instance; coordination across replicas is deferred. No public matchmaking, spectator mode, chat, account rankings, or persistent match history beyond room events is included in this slice.
 
 ## Ownership and parallel work
 
@@ -40,7 +40,7 @@ Start with the current practice balance: 100 health, fireball 20 damage, lightni
 
 Room states: `waiting` (creator only) -> `active` (two authenticated seats) -> `finished` (winner or forfeit) -> expired. A room code identifies one room; reconnect is allowed only for its original user. On disconnect, keep the seat for a short grace period (target 15 seconds), then award a forfeit if active. Send clear UI states for waiting, connecting, disconnected/reconnecting, opponent left, and finished. Close stale sockets and expire idle rooms (target 30 minutes). A process restart reloads the latest persisted snapshot; clients still show a recovery action when a room has expired.
 
-The backend uses a PostgreSQL row lock per room for casts, timer advances, connection transitions, and forfeits, so simultaneous commands have a deterministic order across API replicas. WebSocket peers remain local to each process; each active room refreshes persisted revisions and broadcasts them to its connected local peers.
+The backend uses an in-memory lock per room for deterministic command ordering. Accepted casts and gameplay milestones are persisted once to PostgreSQL, while the 50 ms timer advances the in-memory match without reloads or row locks. WebSocket peers remain local to the single API process; horizontal coordination is follow-up work.
 
 ## Delivery sequence and acceptance gates
 
@@ -54,7 +54,9 @@ The backend uses a PostgreSQL row lock per room for casts, timer advances, conne
 
 Client: `{ "type": "authenticate", "token": "<access token>" }`, then `{ "type": "cast", "v": 1, "seq": 1, "spellId": "rune.triangle" }`.
 
-Server: `{ "type": "state", "v": 1, "revision": 4, "serverTimeMs": 1710000000000, "phase": "active", "players": [{ "seat": 0, "login": "one", "health": 100 }, { "seat": 1, "login": "two", "health": 80 }], "attacks": [{ "seat": 0, "spellId": "rune.triangle", "releaseAtMs": 1710000003000, "impactAtMs": 1710000003800 }], "winner": null }`.
+Server acknowledgment: `{ "type": "cast_ack", "v": 1, "seq": 1, "spellId": "rune.triangle", "acceptedAtMs": 1710000000000, "revision": 4 }`.
+
+Server state: `{ "type": "state", "v": 1, "revision": 4, "serverTimeMs": 1710000000000, "phase": "active", "players": [{ "seat": 0, "login": "one", "health": 100 }, { "seat": 1, "login": "two", "health": 80 }], "attacks": [{ "seat": 0, "spellId": "rune.triangle", "releaseAtMs": 1710000003000, "impactAtMs": 1710000003800 }], "winner": null }`.
 
 Server errors: `{ "type": "error", "v": 1, "code": "cooldown", "seq": 1 }`. Other stable codes: `invalid_message`, `invalid_spell`, `not_ready`, `duplicate`, `room_full`, `unauthorized`. Authentication failure closes the socket with an application error code; it never echoes the token.
 
@@ -62,7 +64,7 @@ The protocol example is a baseline. Any field additions must preserve `v: 1` cli
 
 ## Implementation status (first slice)
 
-Implemented in this branch: pure server duel engine, private create/join API, PostgreSQL room/player/event persistence, first-message JWT room socket, revisioned snapshots, automatic server impacts, 15-second disconnect forfeit, a battle-page room lobby, online renderer, webcam spell adapter, clock-offset ping, and reconnect attempts. Practice mode remains separate. Automated backend and frontend tests cover the core engine, two-client socket exchange, and protocol parsing.
+Implemented in this branch: pure server duel engine, private create/join API, PostgreSQL room/player/event persistence, first-message JWT room socket, revisioned snapshots, explicit cast acknowledgments, in-memory timer advancement, automatic server impacts, 15-second disconnect forfeit, a battle-page room lobby, online renderer, webcam spell adapter, clock-offset ping, and reconnect attempts. Practice mode remains separate. Automated backend and frontend tests cover the core engine, two-client socket exchange, and protocol parsing.
 
 Current expansion: online rooms now accept all six recognized spell IDs. The server resolves Twin Flare and Spark damage, Time Lock's 1.5-second delay, shields, and three-second-or-longer attack warnings. Snapshots include recent confirmed cast IDs so both clients can play each spell's audio once without sounding a rejected command. Twin Flare and Spark reuse scaled source effects until dedicated art is available.
 

@@ -1,7 +1,9 @@
-import { isMatchState, ONLINE_SPELL_IDS, websocketRoomUrl, type MatchState, type OnlineSpellId } from './protocol';
+import { isCastAck, isMatchState, ONLINE_SPELL_IDS, websocketRoomUrl, type CastAck, type MatchState, type OnlineSpellId } from './protocol';
 
 export interface RoomClientEvents {
   onState(state: MatchState): void;
+  onCastAck(ack: CastAck): void;
+  onCastRejected(code: string, seq: number): void;
   onStatus(message: string): void;
   onError(message: string): void;
 }
@@ -51,11 +53,14 @@ export class RoomClient {
         this.revision = message.revision;
         if (!this.hasOffset) { this.offsetMs = message.serverTimeMs - Date.now(); this.hasOffset = true; }
         this.events.onState(message);
+      } else if (isCastAck(message)) {
+        this.events.onCastAck(message);
       } else if (data.type === 'pong' && typeof data.clientTimeMs === 'number' && typeof data.serverTimeMs === 'number') {
         const estimate = data.serverTimeMs - (data.clientTimeMs + Date.now()) / 2;
         this.offsetMs = this.hasOffset ? this.offsetMs * .8 + estimate * .2 : estimate;
         this.hasOffset = true;
       } else if (data.type === 'error') {
+        if (typeof data.seq === 'number') this.events.onCastRejected(String(data.code ?? 'unknown error'), data.seq);
         this.events.onError(`Cast rejected: ${String(data.code ?? 'unknown error')}`);
       }
     });
@@ -74,11 +79,12 @@ export class RoomClient {
     socket.addEventListener('error', () => this.events.onStatus('Network connection interrupted.'));
   }
 
-  cast(spellId: string): boolean {
+  cast(spellId: string): number | false {
     if (!(ONLINE_SPELL_IDS as readonly string[]).includes(spellId)) return false;
     if (this.socket?.readyState !== WebSocket.OPEN || this.revision < 0) return false;
-    this.socket.send(JSON.stringify({ type: 'cast', v: 1, seq: ++this.seq, spellId: spellId as OnlineSpellId }));
-    return true;
+    const seq = ++this.seq;
+    this.socket.send(JSON.stringify({ type: 'cast', v: 1, seq, spellId: spellId as OnlineSpellId }));
+    return seq;
   }
 
   dispose(): void {

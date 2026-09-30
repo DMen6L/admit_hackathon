@@ -2,7 +2,7 @@ import { sampleAnimation, type AssetManifest, type EffectClip } from '../assets/
 import type { ApiAuthService } from '../auth/auth-service';
 import type { SpellCastPayload } from '../spells/spell-resolver';
 import { RoomClient } from './room-client';
-import { ONLINE_SPELL_IDS, type MatchState, type OnlineSpellId } from './protocol';
+import { ONLINE_SPELL_IDS, type CastAck, type MatchState, type OnlineSpellId } from './protocol';
 import { spellAudio } from '../audio/spell-audio';
 import type { BackgroundMusic } from '../audio/background-music';
 import { confirmedSpellSounds, releasedAttackSounds } from '../audio/online-sounds';
@@ -37,6 +37,7 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
   let frameId = 0;
   let disposed = false;
   let connected = false;
+  let pendingCast: { seq: number; spellId: OnlineSpellId } | undefined;
   const playedAttackReleases = new Set<string>();
   const warnedOpponentAttacks = new Set<string>();
   root.setAttribute('aria-label', 'Online duel');
@@ -79,6 +80,7 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
       const isShield = button.dataset.spell === 'shield';
       const canShield = me && now >= me.shieldReadyAtMs && (incoming || now >= me.castReadyAtMs);
       button.disabled = !connected || state.phase !== 'active'
+        || pendingCast !== undefined
         || (isShield ? !canShield : ready < CAST_COOLDOWN_MS || ownAttack);
     }
     threat.hidden = !incoming || now >= incoming.releaseAtMs;
@@ -172,7 +174,15 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
       status.textContent = 'That rune is not available in this duel.';
       return;
     }
-    if (!client?.cast(spellId)) status.textContent = 'Not connected yet. Wait for both players.';
+    const seq = client?.cast(spellId);
+    if (seq === undefined || seq === false) {
+      status.textContent = 'Not connected yet. Wait for both players.';
+      return;
+    }
+    pendingCast = { seq, spellId: spellId as OnlineSpellId };
+    root.dataset.castPending = 'true';
+    status.textContent = 'Sending your spell…';
+    announce(client?.serverNow() ?? Date.now());
   };
   for (const button of playerButtons) button.addEventListener('click', () => {
     sendCast(SPELL_IDS[button.dataset.spell as Spell]);
@@ -203,7 +213,20 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
         status.textContent = next.phase === 'waiting' ? `Room ${code} · waiting for opponent`
           : next.phase === 'finished' ? 'Match finished.' : 'Online duel active. Draw a rune and release your spell.';
       },
-      onStatus(message) { connected = false; music.setActive(false); status.textContent = message; },
+      onCastAck(ack: CastAck) {
+        if (pendingCast?.seq !== ack.seq) return;
+        pendingCast = undefined;
+        delete root.dataset.castPending;
+        status.textContent = 'Spell accepted. Watch the server timing.';
+        announce(client?.serverNow() ?? ack.acceptedAtMs);
+      },
+      onCastRejected(_code: string, seq: number) {
+        if (pendingCast?.seq !== seq) return;
+        pendingCast = undefined;
+        delete root.dataset.castPending;
+        announce(client?.serverNow() ?? Date.now());
+      },
+      onStatus(message) { connected = false; pendingCast = undefined; delete root.dataset.castPending; music.setActive(false); status.textContent = message; },
       onError(message) { if (message.includes('access expired')) { connected = false; music.setActive(false); } status.textContent = message; },
     });
     client.connect();

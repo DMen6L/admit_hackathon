@@ -68,23 +68,13 @@ class Room:
 
     async def broadcast(self) -> None:
         snapshot = self.match.snapshot(now_ms())
-        snapshot["connectedSeats"] = await asyncio.to_thread(_connected_seats, self.code) if self.persistent else sorted(self.peers)
+        snapshot["connectedSeats"] = sorted(self.peers)
         await asyncio.gather(*(peer.send(snapshot) for peer in self.peers.values()), return_exceptions=True)
         self.last_broadcast_revision = self.match.revision
 
 
-def _connected_seats(code: str) -> list[int]:
-    with SessionLocal() as db:
-        rows = db.scalars(
-            select(MultiplayerRoomPlayer.seat)
-            .where(MultiplayerRoomPlayer.room_code == code, MultiplayerRoomPlayer.connected_at.is_not(None))
-            .order_by(MultiplayerRoomPlayer.seat)
-        )
-        return list(rows)
-
-
 class RoomManager:
-    """Coordinates local sockets while PostgreSQL owns room state when enabled."""
+    """Coordinates local sockets and in-memory matches with PostgreSQL checkpoints."""
 
     def __init__(self, persistent: bool = False) -> None:
         self.rooms: dict[str, Room] = {}
@@ -178,65 +168,25 @@ class RoomManager:
 
     def _persist_connection(self, room: Room, seat: int, connected: bool, start: bool = False) -> Match:
         with SessionLocal.begin() as db:
-            row = db.execute(select(MultiplayerRoom).where(MultiplayerRoom.code == room.code)
-                             .with_for_update()).scalar_one()
-            match = Match.from_snapshot(dict(row.snapshot))
+            row = db.get(MultiplayerRoom, room.code)
+            if row is None:
+                raise HTTPException(404, "Room not found.")
             if connected and start:
-                match.start()
+                room.match.start()
             else:
-                match.revision += 1
+                room.match.revision += 1
             player = db.get(MultiplayerRoomPlayer, {"room_code": room.code, "seat": seat})
             if player is None:
                 raise HTTPException(404, "Room seat not found.")
             timestamp = utc_now()
             player.connected_at = timestamp if connected else None
             player.disconnected_at = None if connected else timestamp
-            snapshot = match.snapshot(now_ms())
-            row.phase, row.revision, row.snapshot, row.winner = match.phase, match.revision, snapshot, match.winner
+            snapshot = self._snapshot(room)
+            row.phase, row.revision, row.snapshot, row.winner = room.match.phase, room.match.revision, snapshot, room.match.winner
             row.updated_at, row.expires_at = timestamp, expiry_time()
-            db.add(MultiplayerRoomEvent(room_code=room.code, revision=match.revision,
+            db.add(MultiplayerRoomEvent(room_code=room.code, revision=room.match.revision,
                                         event_type="connected" if connected else "disconnected", payload=snapshot))
-            return match
-
-    def _persist_cast(self, room: Room, seat: int, spell_id: str, timestamp_ms: int) -> Match:
-        with SessionLocal.begin() as db:
-            row = db.execute(select(MultiplayerRoom).where(MultiplayerRoom.code == room.code)
-                             .with_for_update()).scalar_one()
-            match = Match.from_snapshot(dict(row.snapshot))
-            match.cast(seat, spell_id, timestamp_ms)
-            snapshot = match.snapshot(timestamp_ms)
-            row.phase, row.revision, row.snapshot, row.winner = match.phase, match.revision, snapshot, match.winner
-            row.updated_at, row.expires_at = utc_now(), expiry_time()
-            db.add(MultiplayerRoomEvent(room_code=room.code, revision=match.revision, event_type="cast",
-                                        payload={"spellId": spell_id, "snapshot": snapshot}))
-            return match
-
-    def _persist_advance(self, room: Room, timestamp_ms: int) -> tuple[Match, bool]:
-        with SessionLocal.begin() as db:
-            row = db.execute(select(MultiplayerRoom).where(MultiplayerRoom.code == room.code)
-                             .with_for_update()).scalar_one()
-            match = Match.from_snapshot(dict(row.snapshot))
-            changed = match.advance(timestamp_ms)
-            if changed:
-                snapshot = match.snapshot(timestamp_ms)
-                row.phase, row.revision, row.snapshot, row.winner = match.phase, match.revision, snapshot, match.winner
-                row.updated_at, row.expires_at = utc_now(), expiry_time()
-                db.add(MultiplayerRoomEvent(room_code=room.code, revision=match.revision,
-                                            event_type="advance", payload=snapshot))
-            return match, changed
-
-    def _persist_forfeit(self, room: Room, seat: int, timestamp_ms: int) -> Match:
-        with SessionLocal.begin() as db:
-            row = db.execute(select(MultiplayerRoom).where(MultiplayerRoom.code == room.code)
-                             .with_for_update()).scalar_one()
-            match = Match.from_snapshot(dict(row.snapshot))
-            match.forfeit(seat)
-            snapshot = match.snapshot(timestamp_ms)
-            row.phase, row.revision, row.snapshot, row.winner = match.phase, match.revision, snapshot, match.winner
-            row.updated_at = utc_now()
-            db.add(MultiplayerRoomEvent(room_code=room.code, revision=match.revision,
-                                        event_type="forfeit", payload=snapshot))
-            return match
+            return room.match
 
     def _record_result_once(self, room: Room) -> bool:
         with SessionLocal.begin() as db:
@@ -307,12 +257,12 @@ class RoomManager:
             await room.broadcast()
             return room, seat
 
-    async def cast(self, room: Room, seat: int, spell_id: str, timestamp_ms: int) -> None:
+    async def cast(self, room: Room, seat: int, spell_id: str, timestamp_ms: int) -> int:
+        room.match.cast(seat, spell_id, timestamp_ms)
         if self.persistent:
-            room.match = await asyncio.to_thread(self._persist_cast, room, seat, spell_id, timestamp_ms)
-        else:
-            room.match.cast(seat, spell_id, timestamp_ms)
+            await asyncio.to_thread(self._persist_match, room, "cast")
         room.last_activity_ms = now_ms()
+        return room.match.revision
 
     def _room_count(self) -> int:
         with SessionLocal() as db:
@@ -327,21 +277,17 @@ class RoomManager:
             while self.rooms.get(room.code) is room:
                 await asyncio.sleep(0.05)
                 async with room.lock:
-                    changed = False
-                    if self.persistent:
-                        changed = await asyncio.to_thread(self._refresh, room)
-                        room.match, advance_changed = await asyncio.to_thread(self._persist_advance, room, now_ms())
-                        changed = changed or advance_changed
-                    else:
-                        changed = room.match.advance(now_ms())
+                    changed = room.match.advance(now_ms())
+                    if changed and self.persistent:
+                        await asyncio.to_thread(self._persist_match, room, "advance")
                     for seat, lost_at in tuple(room.disconnected_at_ms.items()):
                         if now_ms() - lost_at >= DISCONNECT_GRACE_MS:
-                            if self.persistent:
-                                room.match = await asyncio.to_thread(self._persist_forfeit, room, seat, now_ms())
-                            else:
-                                room.match.forfeit(seat)
+                            before = room.match.revision
+                            room.match.forfeit(seat)
+                            if self.persistent and room.match.revision != before:
+                                await asyncio.to_thread(self._persist_match, room, "forfeit")
                             del room.disconnected_at_ms[seat]
-                            changed = True
+                            changed = changed or room.match.revision != before
                     if room.match.phase == "finished" and not room.stats_recorded and len(room.match.players) == 2 and now_ms() >= room.stats_retry_at_ms:
                         try:
                             if self.persistent:
@@ -471,12 +417,16 @@ async def room_socket(websocket: WebSocket, code: str) -> None:
                 if seq <= peer.last_seq or seq > 2_147_483_647:
                     await peer.send({"type": "error", "v": 1, "code": "duplicate", "seq": seq})
                     continue
+                accepted_at_ms = now_ms()
                 try:
-                    await manager.cast(room, seat, message["spellId"], now_ms())
+                    revision = await manager.cast(room, seat, message["spellId"], accepted_at_ms)
                 except CastRejected as error:
                     await peer.send({"type": "error", "v": 1, "code": error.code, "seq": seq})
                     continue
                 peer.last_seq = seq
+                await peer.send({"type": "cast_ack", "v": 1, "seq": seq,
+                                 "spellId": message["spellId"], "acceptedAtMs": accepted_at_ms,
+                                 "revision": revision})
                 await room.broadcast()
     except WebSocketDisconnect:
         pass

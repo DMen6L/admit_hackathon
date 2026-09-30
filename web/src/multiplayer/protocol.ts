@@ -5,6 +5,15 @@ export const ONLINE_SPELL_IDS = [
 ] as const;
 export type OnlineSpellId = typeof ONLINE_SPELL_IDS[number];
 
+export interface CastAck {
+  type: 'cast_ack';
+  v: 1;
+  seq: number;
+  spellId: OnlineSpellId;
+  acceptedAtMs: number;
+  revision: number;
+}
+
 export interface MatchState {
   type: 'state';
   v: 1;
@@ -26,6 +35,15 @@ export function isMatchState(value: unknown): value is MatchState {
     && typeof state.serverTimeMs === 'number' && ['waiting', 'active', 'finished'].includes(state.phase ?? '')
     && Array.isArray(state.players) && Array.isArray(state.attacks) && Array.isArray(state.casts) && Array.isArray(state.impacts)
     && Array.isArray(state.connectedSeats);
+}
+
+export function isCastAck(value: unknown): value is CastAck {
+  if (!value || typeof value !== 'object') return false;
+  const ack = value as Partial<CastAck>;
+  return ack.type === 'cast_ack' && ack.v === 1
+    && typeof ack.seq === 'number' && Number.isSafeInteger(ack.seq) && ack.seq > 0 && typeof ack.spellId === 'string'
+    && (ONLINE_SPELL_IDS as readonly string[]).includes(ack.spellId)
+    && typeof ack.acceptedAtMs === 'number' && Number.isSafeInteger(ack.revision);
 }
 
 export function websocketRoomUrl(apiBaseUrl: string, code: string): string {

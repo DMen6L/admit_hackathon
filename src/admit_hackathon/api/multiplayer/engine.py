@@ -86,6 +86,7 @@ class Match:
                 cast_at_ms=int(raw_player.get("castAtMs", -10_000_000_000_000)),
                 shield_at_ms=int(raw_player.get("shieldAtMs", -10_000_000_000_000)),
                 shield_until_ms=int(raw_player.get("shieldUntilMs", 0)),
+                slow_next_attack=bool(raw_player.get("slowNextAttack", False)),
             )
             game.players.append(player)
         game.phase = str(snapshot.get("phase", "waiting"))
@@ -98,6 +99,7 @@ class Match:
                 started_at_ms=int(raw["startedAtMs"]),
                 release_at_ms=int(raw["releaseAtMs"]),
                 impact_at_ms=int(raw["impactAtMs"]),
+                slowed=bool(raw.get("slowed", False)),
             )
             for raw in snapshot.get("attacks", [])
         ]
@@ -109,6 +111,15 @@ class Match:
                 blocked=bool(raw["blocked"]),
             )
             for raw in snapshot.get("impacts", [])
+        ]
+        game.casts = [
+            CastEvent(
+                id=int(raw["id"]),
+                seat=int(raw["seat"]),
+                spell_id=str(raw["spellId"]),
+                at_ms=int(raw["atMs"]),
+            )
+            for raw in snapshot.get("casts", [])
         ]
         return game
 
