@@ -1,37 +1,37 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wizard Duel · Asset workshop</title>
+    <title>Wizard Duel · Мастерская анимации</title>
   </head>
   <body>
     <main>
-      <header><a href="./">← Back to the game</a><p class="eyebrow">Wizard Duel / asset workshop</p><h1>From artwork to action.</h1><p>Explore the original poses, inspect frame timing, and stage both wizards in the arena.</p></header>
-      <p id="load-status" role="status">Loading artwork…</p>
-      <a id="load-retry" href="./asset-preview.html" hidden>Reload the workshop</a>
+      <header><a href="./">← Вернуться в игру</a><p class="eyebrow">Wizard Duel / Мастерская анимации</p><h1>От рисунка к движению.</h1><p>Изучите позы, покадровую анимацию и расположение магов на арене.</p></header>
+      <p id="load-status" role="status">Загружаем графику…</p>
+      <a id="load-retry" href="./asset-preview.html" hidden>Перезагрузить мастерскую</a>
       <section id="workshop" hidden>
-        <div class="arena" aria-label="Animation stage">
-          <div class="stage-label"><span>MOONLIT COURTYARD</span><span>Animation preview</span></div>
-          <img id="actor" alt="Selected wizard animation" />
-          <img id="opponent" alt="Other wizard idle pose" />
+        <div class="arena" aria-label="Сцена анимации">
+          <div class="stage-label"><span>ЛУННАЯ АРЕНА</span><span>Предпросмотр анимации</span></div>
+          <img id="actor" alt="Анимация выбранного мага" />
+          <img id="opponent" alt="Поза второго мага" />
         </div>
         <div class="workspace">
           <section class="panel" aria-labelledby="controls-title">
-            <p class="eyebrow">Playback</p><h2 id="controls-title">Choose your spellcaster</h2>
-            <label for="character">Asset collection</label><select id="character"><option value="berik">Berik · Arcane Warden</option><option value="alisher">Alisher · Ember Shade</option><option value="effects">Spell effects</option></select>
-            <label for="animation">Animation</label><select id="animation"><option value="idle">Idle</option><option value="cast">Cast fireball</option><option value="dodge">Dodge</option></select>
-            <div class="actions"><button id="play" type="button">Play</button><button id="restart" type="button">Restart</button></div>
-            <label for="speed">Playback speed</label><select id="speed"><option value="0.25">0.25× · inspect</option><option value="0.5">0.5×</option><option value="1" selected>1× · original timing</option><option value="2">2×</option></select>
-            <label class="check"><input id="repeat" type="checkbox" /> Repeat one-shot animations</label>
+            <p class="eyebrow">Воспроизведение</p><h2 id="controls-title">Выберите мага</h2>
+            <label for="character">Набор ресурсов</label><select id="character"><option value="berik">Берик · Хранитель магии</option><option value="alisher">Алишер · Тень пламени</option><option value="effects">Эффекты заклинаний</option></select>
+            <label for="animation">Анимация</label><select id="animation"><option value="idle">Ожидание</option><option value="cast">Огненный шар</option><option value="dodge">Уклонение</option></select>
+            <div class="actions"><button id="play" type="button">Воспроизвести</button><button id="restart" type="button">Сначала</button></div>
+            <label for="speed">Скорость воспроизведения</label><select id="speed"><option value="0.25">0.25× · просмотр</option><option value="0.5">0.5×</option><option value="1" selected>1× · исходная скорость</option><option value="2">2×</option></select>
+            <label class="check"><input id="repeat" type="checkbox" /> Повторять разовые анимации</label>
           </section>
           <section class="panel" aria-labelledby="frames-title">
-            <p class="eyebrow">Frame inspector</p><h2 id="frames-title">Every pose, on its own.</h2>
+            <p class="eyebrow">Просмотр кадров</p><h2 id="frames-title">Каждая поза отдельно.</h2>
             <p id="clip-info"></p><p id="pose-note" class="note"></p>
-            <div id="frames" class="frames" aria-label="Select an animation frame"></div>
+            <div id="frames" class="frames" aria-label="Выбрать кадр анимации"></div>
             <p id="frame-info" class="frame-info"></p>
-            <p class="muted">Click a frame to pause and inspect it. Event labels mark the artwork’s suggested timing; combat rules belong to the game server.</p>
-            <a id="download" download>Open current SVG frame</a> · <a href="./assets/game/manifest.json">View asset manifest</a>
+            <p class="muted">Нажмите на кадр, чтобы остановить анимацию. Метки событий показывают момент действия; правила боя задаёт игровой сервер.</p>
+            <a id="download" download>Открыть текущий SVG-кадр</a> · <a href="./assets/game/manifest.json">Посмотреть список ресурсов</a>
           </section>
         </div>
       </section>

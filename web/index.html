@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#10151d" />
-    <title>Magic game · Hand tracking</title>
+    <title>Wizard Duel · Вход</title>
   </head>
   <body>
     <div id="login-screen" class="auth-shell">
@@ -12,50 +12,50 @@
         <section class="auth-intro" aria-labelledby="welcome-title">
           <p class="brand"><span aria-hidden="true">✦</span> Wizard Duel</p>
           <div>
-            <p class="eyebrow">Webcam-powered spellcasting</p>
-            <h1 id="welcome-title">Your hands hold the magic.</h1>
-            <p class="auth-intro__copy">Enter the arena, draw ancient runes, and turn movement into spells—all from your browser.</p>
+            <p class="eyebrow">Магия через веб-камеру</p>
+            <h1 id="welcome-title">Магия в ваших руках.</h1>
+            <p class="auth-intro__copy">Выходите на арену, рисуйте руны в воздухе и превращайте движения в заклинания прямо в браузере.</p>
           </div>
-          <p class="auth-feature"><span aria-hidden="true">◎</span> Camera processing stays on this device.</p>
-          <a href="./asset-preview.html">Explore the animation workshop →</a>
+          <p class="auth-feature"><span aria-hidden="true">◎</span> Видео с камеры обрабатывается на вашем устройстве.</p>
+          <a href="./asset-preview.html">Посмотреть мастерскую анимации →</a>
         </section>
 
         <section class="auth-card" aria-labelledby="login-title">
           <div class="auth-card__heading">
-            <p id="auth-eyebrow" class="eyebrow">Welcome back</p>
-            <h2 id="login-title">Enter the lobby</h2>
-            <p id="login-copy">Sign in to choose training or a duel with a friend.</p>
+            <p id="auth-eyebrow" class="eyebrow">С возвращением</p>
+            <h2 id="login-title">Войти в лобби</h2>
+            <p id="login-copy">Войдите, чтобы выбрать тренировку или дуэль с другом.</p>
           </div>
 
           <form id="login-form" novalidate>
             <div class="field">
-              <label for="login">Login</label>
+              <label for="login">Логин</label>
               <input id="login" name="login" type="text" autocomplete="username" placeholder="arcane.wanderer" aria-describedby="login-field-error" required />
               <span id="login-field-error" class="field-error" aria-live="polite"></span>
             </div>
 
             <div class="field">
-              <label for="password">Password</label>
+              <label for="password">Пароль</label>
               <div class="password-field">
-                <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password" aria-describedby="password-error" required />
-                <button id="password-toggle" class="password-toggle" type="button" aria-label="Show password" aria-pressed="false">Show</button>
+                <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Ваш пароль" aria-describedby="password-error" required />
+                <button id="password-toggle" class="password-toggle" type="button" aria-label="Показать пароль" aria-pressed="false">Показать</button>
               </div>
               <span id="password-error" class="field-error" aria-live="polite"></span>
             </div>
 
             <label class="checkbox-field">
               <input id="keep-signed-in" type="checkbox" />
-              <span>Keep me signed in</span>
+              <span>Оставаться в системе</span>
             </label>
 
             <p id="login-error" class="form-error" role="alert" hidden></p>
-            <button id="login-submit" class="primary-action" type="submit">Choose your duel</button>
+            <button id="login-submit" class="primary-action" type="submit">Выбрать дуэль</button>
           </form>
 
-          <button id="auth-mode-toggle" class="auth-mode-toggle" type="button">Create an account</button>
-          <aside id="demo-access" class="demo-access" aria-label="Prototype access details">
-            <strong>Server accounts</strong>
-            <span>Passwords are hashed by the authentication API.</span>
+          <button id="auth-mode-toggle" class="auth-mode-toggle" type="button">Создать аккаунт</button>
+          <aside id="demo-access" class="demo-access" aria-label="Информация об аккаунтах">
+            <strong>Аккаунты на сервере</strong>
+            <span>Пароли хранятся на сервере в виде хешей.</span>
           </aside>
         </section>
       </main>

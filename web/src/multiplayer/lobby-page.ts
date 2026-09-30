@@ -14,7 +14,7 @@ void auth.restoreSession().then((user) => {
   sessionStatus.hidden = true;
   mountRoomLobby(auth);
 }).catch(() => {
-  sessionStatus.textContent = 'Lobby unavailable. Return to sign in and try again.';
+  sessionStatus.textContent = 'Лобби недоступно. Войдите снова и попробуйте ещё раз.';
 });
 
 document.querySelector<HTMLButtonElement>('#sign-out')!.addEventListener('click', () => {

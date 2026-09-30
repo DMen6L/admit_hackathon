@@ -19,7 +19,7 @@ describe('guided tutorial', () => {
     const flow = new TutorialFlow();
     expect(LESSONS).toHaveLength(7);
     expect(flow.continue()).toBe(false);
-    expect(flow.cast(matched('triangle'), 0).message).toContain('That was Fireball');
+    expect(flow.cast(matched('triangle'), 0).message).toContain('Это было заклинание Огненный шар');
     expect(flow.index).toBe(0);
     expect(flow.cast(matched('line'), 0).kind).toBe('success');
     expect(flow.continue()).toBe(true);
@@ -29,9 +29,9 @@ describe('guided tutorial', () => {
 
   it('offers shape-specific recovery without unlocking the next lesson', () => {
     const flow = new TutorialFlow();
-    const feedback = flow.cast(nearMiss('Draw a longer stroke'), 0);
-    expect(feedback.message).toContain('Draw a longer stroke');
-    expect(feedback.message).toContain('Make the line broad');
+    const feedback = flow.cast(nearMiss('Нарисуйте линию длиннее'), 0);
+    expect(feedback.message).toContain('Нарисуйте линию длиннее');
+    expect(feedback.message).toContain('Рисуйте плавно');
     expect(flow.passed).toBe(false);
     expect(flow.continue()).toBe(false);
   });
@@ -58,11 +58,11 @@ describe('guided tutorial', () => {
     flow.startThreat(1000);
     expect(flow.tick(3999)).toBe(false);
     expect(flow.tick(4000)).toBe(true);
-    expect(flow.feedback.message).toContain('fireball landed');
+    expect(flow.feedback.message).toContain('Огненный шар попал');
     expect(flow.passed).toBe(false);
-    expect(flow.cast(matched('circle'), 4001).message).toContain('Start the incoming attack');
+    expect(flow.cast(matched('circle'), 4001).message).toContain('Запустите атаку');
     flow.startThreat(5000);
-    expect(flow.cast(matched('triangle'), 5500).message).toContain('needs Shield');
+    expect(flow.cast(matched('triangle'), 5500).message).toContain('нужна руна Щит');
     expect(flow.cast(matched('circle'), 6000).kind).toBe('success');
   });
 });

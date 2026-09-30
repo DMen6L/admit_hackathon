@@ -1,66 +1,66 @@
 <!doctype html>
-<html lang="en">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#091321" />
-    <title>Choose your duel · Wizard Duel</title>
+    <title>Выбрать дуэль · Wizard Duel</title>
   </head>
   <body class="lobby-page">
-    <p id="lobby-session-status" role="status">Preparing your spellbook…</p>
+    <p id="lobby-session-status" role="status">Готовим вашу книгу заклинаний…</p>
     <main id="lobby-screen" class="lobby-shell" hidden>
       <header class="lobby-header">
         <a class="lobby-brand" href="./lobby.html"><span class="lobby-brand__mark" aria-hidden="true">✦</span> Wizard Duel</a>
-        <div class="lobby-account"><span class="lobby-account__avatar" aria-hidden="true">✧</span><a id="current-user" href="./profile.html" aria-label="Open your profile"></a><button id="sign-out" type="button">Sign out</button></div>
+        <div class="lobby-account"><span class="lobby-account__avatar" aria-hidden="true">✧</span><a id="current-user" href="./profile.html" aria-label="Открыть профиль"></a><button id="sign-out" type="button">Выйти</button></div>
       </header>
 
       <section class="lobby-intro" aria-labelledby="lobby-title">
-        <p class="eyebrow">The courtyard awaits</p>
-        <h1 id="lobby-title">How will you duel tonight?</h1>
-        <p>Choose a training match or invite a friend. Your hands cast the spells; the camera stays on your device.</p>
+        <p class="eyebrow">Арена ждёт вас</p>
+        <h1 id="lobby-title">Какую дуэль выберете?</h1>
+        <p>Тренируйтесь с ботом или пригласите друга. Управляйте заклинаниями движением руки — видео остаётся на вашем устройстве.</p>
       </section>
 
-      <a class="lobby-tutorial" href="./tutorial.html" aria-label="Start the guided casting tutorial">
+      <a class="lobby-tutorial" href="./tutorial.html" aria-label="Начать обучение заклинаниям">
         <span class="lobby-tutorial__icon" aria-hidden="true">✦</span>
-        <span><small>New to the courtyard?</small><strong>Learn to cast in the Arcane Academy</strong><em>Seven guided lessons · all available runes · camera or mouse</em></span>
+        <span><small>Впервые на арене?</small><strong>Научитесь колдовать в Академии магии</strong><em>Семь уроков · все руны · камера или мышь</em></span>
         <span class="lobby-tutorial__arrow" aria-hidden="true">↗</span>
       </a>
 
-      <section class="lobby-modes" aria-label="Choose a game mode">
+      <section class="lobby-modes" aria-label="Выберите режим игры">
         <article class="mode-card mode-card--bot">
           <div class="mode-card__art" aria-hidden="true"><span class="mode-card__rune">△</span><img src="./assets/game/alisher/idle-01.svg" alt="" /></div>
           <div class="mode-card__content">
-            <p class="mode-card__index">01 <span>Solo training</span></p>
-            <h2>Face the training bot</h2>
-            <p>A scripted rival telegraphs each attack. Practice reading runes, timing your shield, and casting at your own pace.</p>
-            <div class="mode-card__meta"><span>One player</span><span>Instant start</span><span>Local match</span></div>
-            <a class="mode-card__action" href="./battle.html?mode=practice">Start training <span aria-hidden="true">↗</span></a>
+            <p class="mode-card__index">01 <span>Тренировка</span></p>
+            <h2>Сразиться с ботом</h2>
+            <p>Бот заранее показывает свои атаки. Тренируйтесь рисовать руны и вовремя ставить щит.</p>
+            <div class="mode-card__meta"><span>Один игрок</span><span>Быстрый старт</span><span>Локальный матч</span></div>
+            <a class="mode-card__action" href="./battle.html?mode=practice">Начать тренировку <span aria-hidden="true">↗</span></a>
           </div>
         </article>
 
         <article id="room-lobby" class="mode-card mode-card--friend">
           <div class="mode-card__art" aria-hidden="true"><span class="mode-card__rune">○</span><img src="./assets/game/berik/idle-01.svg" alt="" /></div>
           <div class="mode-card__content">
-            <p class="mode-card__index">02 <span>Private duel</span></p>
-            <h2>Challenge a friend</h2>
-            <p>Create a private room and share its link, or enter a friend's six-character code. Both players need separate accounts.</p>
-            <div class="mode-card__meta"><span>Two players</span><span>Live match</span><span>Private code</span></div>
-            <button class="mode-card__action" type="button" data-room-create>Create a room <span aria-hidden="true">↗</span></button>
+            <p class="mode-card__index">02 <span>Приватная дуэль</span></p>
+            <h2>Вызвать друга</h2>
+            <p>Создайте комнату и поделитесь ссылкой либо введите код друга из шести символов. Каждому игроку нужен отдельный аккаунт.</p>
+            <div class="mode-card__meta"><span>Два игрока</span><span>Онлайн-матч</span><span>Код комнаты</span></div>
+            <button class="mode-card__action" type="button" data-room-create>Создать комнату <span aria-hidden="true">↗</span></button>
             <form class="room-join" data-room-join>
-              <label for="room-code">Already have a code?</label>
-              <div class="room-join__controls"><input id="room-code" data-room-code inputmode="text" maxlength="6" placeholder="ABC123" autocomplete="off" aria-label="Six-character room code" /><button type="submit">Join room</button></div>
+              <label for="room-code">Уже есть код?</label>
+              <div class="room-join__controls"><input id="room-code" data-room-code inputmode="text" maxlength="6" placeholder="ABC123" autocomplete="off" aria-label="Код комнаты из шести символов" /><button type="submit">Войти в комнату</button></div>
             </form>
-            <p class="room-status" data-room-status role="status" aria-live="polite">A room opens in the arena; copy its link there to invite your friend.</p>
+            <p class="room-status" data-room-status role="status" aria-live="polite">Комната откроется на арене. Скопируйте там ссылку и отправьте другу.</p>
           </div>
         </article>
       </section>
 
-      <section class="lobby-guide" aria-label="How a duel works">
-        <div><span aria-hidden="true">01</span><strong>Watch the rune</strong><p>Your rival's spell is visible before impact.</p></div>
-        <div><span aria-hidden="true">02</span><strong>Draw to cast</strong><p>Trace a rune with your hand. Learn all six spells in the tutorial.</p></div>
-        <div><span aria-hidden="true">03</span><strong>Release your palm</strong><p>Open your hand to send the spell, or use the buttons.</p></div>
+      <section class="lobby-guide" aria-label="Как проходит дуэль">
+        <div><span aria-hidden="true">01</span><strong>Следите за руной</strong><p>Заклинание соперника видно до удара.</p></div>
+        <div><span aria-hidden="true">02</span><strong>Нарисуйте руну</strong><p>Нарисуйте руну рукой. Все шесть заклинаний есть в обучении.</p></div>
+        <div><span aria-hidden="true">03</span><strong>Раскройте ладонь</strong><p>Раскройте ладонь, чтобы применить заклинание. Также доступны кнопки.</p></div>
       </section>
-      <p class="lobby-footnote">No camera? Spell buttons work in both modes. <a href="./asset-preview.html">Explore the animation workshop →</a></p>
+      <p class="lobby-footnote">Нет камеры? В обоих режимах работают кнопки заклинаний. <a href="./asset-preview.html">Посмотреть мастерскую анимации →</a></p>
     </main>
     <script type="module" src="/src/multiplayer/lobby-page.ts"></script>
   </body>

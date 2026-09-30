@@ -1,4 +1,9 @@
 export type Spell = 'fireball' | 'shield' | 'lightning' | 'twin-flare' | 'time-lock' | 'spark';
+const SPELL_NAMES: Record<Spell, string> = {
+  fireball: 'Огненный шар', shield: 'Щит', lightning: 'Молния',
+  'twin-flare': 'Двойное пламя', 'time-lock': 'Остановка времени', spark: 'Искра',
+};
+export function spellName(spell: Spell): string { return SPELL_NAMES[spell]; }
 export type Side = 0 | 1;
 export const CAST_COOLDOWN_MS = 900;
 export const ENEMY_WINDUP_MS = 3000;
@@ -27,14 +32,14 @@ export class DemoDuel {
   fighters: [Fighter, Fighter] = [this.fighter(), this.fighter()];
   attacks: Attack[] = [];
   impacts: { side: Side; spell: Spell; at: number; blocked: boolean }[] = [];
-  message = 'Practice duel ready. Draw a rune to cast.';
+  message = 'Тренировочная дуэль готова. Нарисуйте руну, чтобы колдовать.';
   winner: Side | undefined;
   lastEnemyMiscastAt = -Infinity;
-  private participants: [string, string] = ['Player', 'Computer (AI)'];
+  private participants: [string, string] = ['Игрок', 'Компьютер'];
 
   constructor(private readonly random: () => number = Math.random) {}
 
-  setParticipants(playerName: string, opponentName = 'Computer (AI)'): void {
+  setParticipants(playerName: string, opponentName = 'Компьютер'): void {
     this.participants = [playerName, opponentName];
   }
 
@@ -61,7 +66,7 @@ export class DemoDuel {
     if (spell === 'shield') {
       fighter.shieldAt = now;
       fighter.shieldUntil = now + SHIELD_DURATION_MS;
-      this.message = `${this.name(side)} raises a shield.`;
+      this.message = `${this.name(side)} поднимает щит.`;
     } else if (spell === 'time-lock') {
       const target: Side = side === 0 ? 1 : 0;
       const pending = this.attacks.find((attack) => attack.side === target && attack.impactAt > now);
@@ -80,12 +85,12 @@ export class DemoDuel {
         this.fighters[target].revealNextAttack = true;
       }
       this.message = pending
-        ? `${this.name(side)} reveals ${pending.spell} with Time Lock.`
-        : `${this.name(side)} casts Time Lock. The next opponent spell will be revealed and delayed.`;
+        ? `${this.name(side)} раскрывает заклинание «${spellName(pending.spell)}» с помощью Остановки времени.`
+        : `${this.name(side)} применяет Остановку времени. Следующая атака соперника будет раскрыта и задержана.`;
     } else {
       if (side === 1 && this.random() < ENEMY_MISCAST_CHANCE) {
         this.lastEnemyMiscastAt = now;
-        this.message = `${this.name(side)} fumbles the spell. The attack fizzles!`;
+        this.message = `${this.name(side)} ошибается в заклинании. Атака исчезает!`;
         return true;
       }
       const slowed = fighter.slowNextAttack;
@@ -98,9 +103,9 @@ export class DemoDuel {
       this.attacks.push({ side, spell, startedAt: now, releaseAt: now + windup,
         impactAt: now + windup + ATTACK_TRAVEL_MS[spell], announcedRelease: false, slowed, revealed });
       this.message = side === 1
-        ? revealed ? `${this.name(side)} is charging ${spell}. Draw a circle and open your palm to shield!`
-          : `${this.name(side)} is charging a spell. Draw a circle and open your palm to shield!`
-        : `${this.name(side)} casts ${spell}.`;
+        ? revealed ? `${this.name(side)} заряжает заклинание «${spellName(spell)}». Нарисуйте круг и раскройте ладонь, чтобы поставить щит!`
+          : `${this.name(side)} заряжает заклинание. Нарисуйте круг и раскройте ладонь, чтобы поставить щит!`
+        : `${this.name(side)} применяет заклинание «${spellName(spell)}».`;
     }
     return true;
   }
@@ -111,8 +116,8 @@ export class DemoDuel {
       if (attack.side === 1 && !attack.announcedRelease && attack.releaseAt <= now && attack.impactAt > now) {
         attack.announcedRelease = true;
         this.message = attack.revealed
-          ? `${this.name(attack.side)} released ${attack.spell}. Shield before impact!`
-          : `${this.name(attack.side)} released a spell. Shield before impact!`;
+          ? `${this.name(attack.side)} выпускает заклинание «${spellName(attack.spell)}». Поставьте щит до удара!`
+          : `${this.name(attack.side)} выпускает заклинание. Поставьте щит до удара!`;
       }
     }
     const arrived = this.attacks.filter((attack) => attack.impactAt <= now).sort((a, b) => a.impactAt - b.impactAt);
@@ -125,11 +130,11 @@ export class DemoDuel {
       if (blocked) fighter.shieldUntil = 0;
       else fighter.health = Math.max(0, fighter.health - ATTACK_DAMAGE[attack.spell]);
       this.impacts.push({ side: target, spell: attack.spell, at: now, blocked });
-      this.message = blocked ? 'Shield absorbed the attack.' : `${this.name(target)} takes a hit.`;
+      this.message = blocked ? 'Щит поглотил атаку.' : `${this.name(target)} получает урон.`;
       if (fighter.health === 0) {
         this.winner = attack.side;
         this.attacks = [];
-        this.message = `${this.name(attack.side)} wins the practice duel. Restart to play again.`;
+        this.message = `${this.name(attack.side)} побеждает в тренировочной дуэли. Начните заново, чтобы сыграть ещё раз.`;
       }
     }
   }
@@ -140,7 +145,7 @@ export class DemoDuel {
     this.impacts = [];
     this.winner = undefined;
     this.lastEnemyMiscastAt = -Infinity;
-    this.message = 'Practice duel ready. Draw a rune to cast.';
+    this.message = 'Тренировочная дуэль готова. Нарисуйте руну, чтобы колдовать.';
   }
 }
 

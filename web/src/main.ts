@@ -58,7 +58,7 @@ const music = new BackgroundMusic(spellAudio);
 cameraViewToggle.addEventListener('click', () => {
   const showCamera = preview.dataset.view !== 'camera';
   preview.dataset.view = showCamera ? 'camera' : 'skeleton';
-  cameraViewToggle.textContent = showCamera ? 'Hide camera' : 'Show camera';
+  cameraViewToggle.textContent = showCamera ? 'Скрыть камеру' : 'Показать камеру';
   cameraViewToggle.setAttribute('aria-pressed', String(showCamera));
 });
 
@@ -80,7 +80,7 @@ function setCastingStatus(message: string, active: boolean): void {
   else delete castingStatus.dataset.active;
 }
 
-function stopCamera(message = 'Camera stopped. You can start again.'): void {
+function stopCamera(message = 'Камера выключена. Вы можете включить её снова.'): void {
   session += 1; // Invalidates pending camera requests and frame callbacks.
   cancelAnimationFrame(frameId);
   stream?.getTracks().forEach((track) => track.stop());
@@ -94,8 +94,8 @@ function stopCamera(message = 'Camera stopped. You can start again.'): void {
   pathContext.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
   context.clearRect(0, 0, canvas.width, canvas.height);
   placeholder.hidden = false;
-  handCount.textContent = '0 hands detected';
-  castingStatus.textContent = 'Casting: waiting for a hand';
+  handCount.textContent = 'Руки не обнаружены';
+  castingStatus.textContent = 'Ожидаем руку';
   delete castingStatus.dataset.active;
   startButton.disabled = false;
   stopButton.disabled = true;
@@ -125,10 +125,10 @@ function showCastResult(evaluation: ShapeEvaluation): SpellCastPayload | undefin
   resultIcon.textContent = presentation.icon;
   resultTitle.textContent = presentation.title;
   resultDetail.textContent = presentation.detail;
-  resultSpell.textContent = spellDefinition ? `Spell: ${spellDefinition.name}` : '';
+  resultSpell.textContent = spellDefinition ? `Заклинание: ${spellDefinition.name}` : '';
   resultSpell.hidden = !spellDefinition;
   resultRune.textContent = spellDefinition
-    ? `Rune reading: ${spellDefinition.runeInterpretation}`
+    ? `Значение руны: ${spellDefinition.runeInterpretation}`
     : '';
   resultRune.hidden = !spellDefinition;
   resultCorrection.hidden = !presentation.correction;
@@ -201,16 +201,16 @@ function cameraError(error: unknown): string {
   if (error instanceof DOMException) {
     switch (error.name) {
       case 'NotAllowedError':
-        return 'Camera permission was denied. Allow camera access in your browser, then try again.';
+        return 'Доступ к камере запрещён. Разрешите его в браузере и попробуйте снова.';
       case 'NotFoundError':
-        return 'No webcam was found. Connect a camera, then try again.';
+        return 'Камера не найдена. Подключите её и попробуйте снова.';
       case 'NotReadableError':
-        return 'The webcam could not start. Close other apps using it, then try again.';
+        return 'Не удалось включить камеру. Закройте другие приложения, использующие её, и попробуйте снова.';
       case 'SecurityError':
-        return 'Camera access is blocked. Open this page on localhost or HTTPS.';
+        return 'Доступ к камере заблокирован. Откройте страницу через localhost или HTTPS.';
     }
   }
-  return 'The camera could not start. Check your camera connection and browser permissions, then try again.';
+  return 'Не удалось включить камеру. Проверьте подключение и разрешения браузера.';
 }
 
 function trackFrame(activeSession: number): void {
@@ -266,49 +266,49 @@ function trackFrame(activeSession: number): void {
       if (startedHands.length > 0) {
         clearCastResult();
         const labels = startedHands.map((hand) => hand.label).join(' + ');
-        setCastingStatus(`Casting started · ${labels}`, true);
+        setCastingStatus(`Рисование началось · ${labels}`, true);
       } else if (castingHands.length > 0) {
         const labels = castingHands.map((hand) => hand.label).join(' + ');
-        setCastingStatus(`Writing path · ${labels}`, true);
+        setCastingStatus(`Рисуем руну · ${labels}`, true);
       } else if (pendingHands.length > 0) {
         const correction = pendingHands.find((hand) => hand.releaseCorrection)?.releaseCorrection;
-        setCastingStatus(correction ?? 'Show your palm to release', true);
+        setCastingStatus(correction ?? 'Раскройте ладонь для применения заклинания', true);
       } else if (cancelledHands.length > 0) {
-        setCastingStatus('Spell cancelled · show your palm to release', false);
+        setCastingStatus('Заклинание отменено · раскройте ладонь для применения', false);
       } else {
         const pointing = processedHands.hands.find((hand) => hand.indexRaised);
-        const message = count === 0 ? 'Waiting for a hand'
-          : pointing?.correction ? `Tip: ${pointing.correction}`
-            : pointing ? 'Hold your pointing pose to begin' : 'Point one index finger to draw';
+        const message = count === 0 ? 'Ожидаем руку'
+          : pointing?.correction ? `Подсказка: ${pointing.correction}`
+            : pointing ? 'Удерживайте указательный палец, чтобы начать' : 'Вытяните указательный палец, чтобы рисовать';
         setCastingStatus(message, false);
       }
       const message = count > 0
-        ? 'Tracking your hands. Move your fingers and watch the landmarks follow.'
-        : 'Camera is running. Hold your hands fully in view with enough light.';
+        ? 'Руки обнаружены. Двигайте пальцами и следите за точками на экране.'
+        : 'Камера работает. Держите руки полностью в кадре при хорошем освещении.';
       if (status.textContent !== message) setStatus(message);
     }
     frameId = requestAnimationFrame(() => trackFrame(activeSession));
   } catch (error) {
-    console.error('Hand tracking failed:', error);
+    console.error('Ошибка отслеживания руки:', error);
     stopCamera();
     tracker.close();
     tracker = undefined;
     trackerLoading = undefined;
-    setStatus('Tracking stopped unexpectedly. Try starting the camera again.', true);
+    setStatus('Отслеживание остановилось. Попробуйте включить камеру снова.', true);
   }
 }
 
 async function startCamera(): Promise<void> {
   if (startButton.disabled) return;
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-    setStatus('Camera access needs a supported browser on localhost or HTTPS.', true);
+    setStatus('Для камеры нужен поддерживаемый браузер и адрес localhost или HTTPS.', true);
     return;
   }
 
   const activeSession = ++session;
   startButton.disabled = true;
   stopButton.disabled = false;
-  setStatus('Requesting camera access…');
+  setStatus('Запрашиваем доступ к камере…');
   let stage: 'camera' | 'model' = 'camera';
 
   try {
@@ -330,7 +330,7 @@ async function startCamera(): Promise<void> {
     stream.getVideoTracks().forEach((track) => {
       track.addEventListener('ended', () => {
         if (activeSession === session) {
-          stopCamera('The camera disconnected. Reconnect it and start again.');
+          stopCamera('Камера отключилась. Подключите её и попробуйте снова.');
         }
       }, { once: true });
     });
@@ -339,7 +339,7 @@ async function startCamera(): Promise<void> {
     if (activeSession !== session) return;
     placeholder.hidden = true;
     stage = 'model';
-    setStatus('Loading hand tracking…');
+    setStatus('Загружаем распознавание руки…');
 
     // Share an in-flight load if the camera is stopped and restarted during setup.
     trackerLoading ??= createHandTracker().then((loaded) => {
@@ -354,12 +354,12 @@ async function startCamera(): Promise<void> {
     trackFrame(activeSession);
   } catch (error) {
     if (activeSession !== session) return;
-    console.error('Could not start hand tracking:', error);
+    console.error('Не удалось запустить отслеживание руки:', error);
     stopCamera();
     setStatus(stage === 'model' && isHandTrackerAssetError(error)
-      ? 'Hand-tracking files are missing from this deployment. Rebuild with the MediaPipe setup step, then reload.'
+      ? 'На сайте отсутствуют файлы распознавания руки. Повторите сборку с установкой MediaPipe и перезагрузите страницу.'
       : stage === 'model'
-        ? 'The hand-tracking model could not initialize. Reload and try again.'
+        ? 'Не удалось запустить модель распознавания руки. Перезагрузите страницу и попробуйте снова.'
       : cameraError(error), true);
   }
 }
@@ -388,11 +388,11 @@ void auth.restoreSession().then((user) => {
     duel = practice;
   }
 }).catch(() => {
-  document.querySelector('#battle-session-status')!.textContent = 'Session unavailable. Return to the login page and try again.';
+  document.querySelector('#battle-session-status')!.textContent = 'Сеанс недоступен. Вернитесь на страницу входа и попробуйте снова.';
 });
 document.querySelector<HTMLButtonElement>('#sign-out')!.addEventListener('click', () => {
   stopCamera(); duel?.reset(); duel?.dispose();
-  void auth.signOut().then(() => window.location.replace(import.meta.env.BASE_URL)).catch(() => setStatus('Sign-out failed. Please try again.', true));
+  void auth.signOut().then(() => window.location.replace(import.meta.env.BASE_URL)).catch(() => setStatus('Не удалось выйти из аккаунта. Попробуйте снова.', true));
 });
 
 if (import.meta.env.DEV) {

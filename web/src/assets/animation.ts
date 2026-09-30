@@ -31,7 +31,7 @@ export interface EffectClip {
 export function sampleAnimation(clip: AnimationClip, elapsedMs: number): { frame: number; finished: boolean } {
   const duration = clip.frames.reduce((sum, frame) => sum + frame.durationMs, 0);
   if (!clip.frames.length || duration <= 0 || clip.frames.some((frame) => frame.durationMs <= 0)) {
-    throw new Error('Animation frames must have positive durations.');
+    throw new Error('Длительность кадров анимации должна быть положительной.');
   }
   const elapsed = Number.isFinite(elapsedMs) ? Math.max(0, elapsedMs) : 0;
   if (!clip.loop && elapsed >= duration) return { frame: clip.frames.length - 1, finished: true };

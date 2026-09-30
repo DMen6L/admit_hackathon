@@ -78,14 +78,14 @@ export class RecognitionCaptureSession {
 }
 
 export function parseCapture(value: unknown): RecognitionCapture {
-  if (!value || typeof value !== 'object') throw new Error('Invalid capture');
+  if (!value || typeof value !== 'object') throw new Error('Некорректная запись');
   const capture = value as Partial<RecognitionCapture>;
   if (capture.schemaVersion !== 1 || !Array.isArray(capture.frames) || !Array.isArray(capture.casts)
     || !Number.isFinite(capture.width) || !Number.isFinite(capture.height)
     || (capture.width ?? 0) <= 0 || (capture.height ?? 0) <= 0
     || capture.frames.some((frame) => !Number.isFinite(frame.elapsedMs) || !Array.isArray(frame.landmarks)
       || !Array.isArray(frame.worldLandmarks) || !Array.isArray(frame.labels))) {
-    throw new Error('Unsupported or malformed capture');
+    throw new Error('Неподдерживаемая или повреждённая запись');
   }
   return capture as RecognitionCapture;
 }

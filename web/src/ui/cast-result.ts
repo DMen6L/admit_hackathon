@@ -15,33 +15,33 @@ export function presentCastResult(evaluation: ShapeEvaluation): CastResultPresen
     return {
       state: 'success',
       icon: '✓',
-      title: 'SPELL CAST',
-      detail: evaluation.templateName ?? 'Rune',
+      title: 'ЗАКЛИНАНИЕ СОЗДАНО',
+      detail: evaluation.templateName ?? 'Руна',
     };
   }
   if (evaluation.status === 'near-miss') {
     return {
       state: 'near-miss',
       icon: '!',
-      title: 'ALMOST',
-      detail: evaluation.templateName ?? 'Shape',
-      correction: evaluation.correction ?? 'Follow the broad outline more closely',
+      title: 'ПОЧТИ ПОЛУЧИЛОСЬ',
+      detail: evaluation.templateName ?? 'Фигура',
+      correction: evaluation.correction ?? 'Нарисуйте контур руны чётче',
     };
   }
   if (evaluation.status === 'insufficient') {
     return {
       state: 'cancelled',
       icon: '↺',
-      title: 'CAST CANCELLED',
-      detail: 'The path was too short to identify.',
+      title: 'ЗАКЛИНАНИЕ ОТМЕНЕНО',
+      detail: 'Линия слишком короткая для распознавания.',
       correction: evaluation.correction,
     };
   }
   return {
     state: 'failure',
     icon: '×',
-    title: 'CAST FAILED',
-    detail: 'No spell matched',
-    correction: evaluation.correction ?? 'Try a broader, clearer shape',
+    title: 'ЗАКЛИНАНИЕ НЕ СОЗДАНО',
+    detail: 'Руна не найдена',
+    correction: evaluation.correction ?? 'Нарисуйте фигуру крупнее и чётче',
   };
 }

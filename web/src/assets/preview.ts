@@ -3,16 +3,16 @@ import { sampleAnimation, type AssetManifest, type AnimationClip } from './anima
 
 function element<T extends HTMLElement>(id: string): T {
   const result = document.getElementById(id);
-  if (!result) throw new Error(`Missing preview element: ${id}`);
+  if (!result) throw new Error(`Не найден элемент предпросмотра: ${id}`);
   return result as T;
 }
 
 async function start(): Promise<void> {
   const base = `${import.meta.env.BASE_URL}assets/game/`;
   const response = await fetch(`${base}manifest.json`);
-  if (!response.ok) throw new Error('Asset manifest unavailable. Run npm run assets:extract.');
+  if (!response.ok) throw new Error('Список ресурсов недоступен. Выполните npm run assets:extract.');
   const manifest: AssetManifest = await response.json();
-  if (manifest.version !== 1 || manifest.clips.length !== 6) throw new Error('Unsupported asset manifest.');
+  if (manifest.version !== 1 || manifest.clips.length !== 6) throw new Error('Неподдерживаемый список ресурсов.');
   await Promise.all([manifest.arena, ...manifest.clips.flatMap((clip) => clip.frames.map((frame) => frame.path)), ...manifest.effects.flatMap((clip) => clip.frames.map((frame) => frame.path))].map(async (path) => {
     const image = new Image();
     image.src = base + path;
@@ -36,15 +36,15 @@ async function start(): Promise<void> {
 
   const setPlaying = (value: boolean) => {
     playing = value;
-    play.textContent = value ? 'Pause' : 'Play';
+    play.textContent = value ? 'Пауза' : 'Воспроизвести';
   };
   const display = (index: number) => {
     if (displayedFrame === index) return;
     displayedFrame = index;
     actor.src = base + clip.frames[index].path;
     element<HTMLAnchorElement>('download').href = actor.src;
-    const events = clip.events.filter((event) => event.frame === index).map((event) => event.name);
-    element('frame-info').textContent = `Frame ${index + 1} / ${clip.frames.length} · ${clip.frames[index].durationMs} ms${events.length ? ` · ${events.join(', ')}` : ''}`;
+    const events = clip.events.filter((event) => event.frame === index).map((event) => event.name === 'projectile-release' ? 'выпуск снаряда' : 'событие анимации');
+    element('frame-info').textContent = `Кадр ${index + 1} / ${clip.frames.length} · ${clip.frames[index].durationMs} мс${events.length ? ` · ${events.join(', ')}` : ''}`;
     for (const [position, button] of [...frames.children].entries()) button.setAttribute('aria-pressed', String(position === index));
   };
   const selectClip = () => {
@@ -60,28 +60,30 @@ async function start(): Promise<void> {
     actor.style.transform = `translate(-${clip.pivot.x / clip.width * 100}%, -${clip.pivot.y / clip.height * 100}%)`;
     actor.style.left = isEffect ? '50%' : '23%';
     actor.style.top = isEffect ? '60%' : '91%';
-    actor.alt = isEffect ? `${clip.id} effect frame` : `${clip.character} ${clip.state} pose`;
+    const characterName = clip.character === 'berik' ? 'Берик' : 'Алишер';
+    const poseName = clip.state === 'idle' ? 'ожидание' : clip.state === 'cast' ? 'заклинание' : 'уклонение';
+    actor.alt = isEffect ? 'Кадр эффекта заклинания' : `${characterName}: ${poseName}`;
     opponent.hidden = isEffect;
     const other = manifest.clips.find((value) => value.character !== clip.character && value.state === 'idle')!;
     opponent.src = base + other.frames[0].path;
     opponent.style.width = actor.style.width;
     opponent.style.transform = `translate(-${(1 - other.pivot.x / other.width) * 100}%, -${other.pivot.y / other.height * 100}%) scaleX(-1)`;
-    element('clip-info').textContent = `${clip.frames.length} frames · ${clip.frames.reduce((sum, frame) => sum + frame.durationMs, 0)} ms · ${clip.width} × ${clip.height} · pivot (${clip.pivot.x}, ${clip.pivot.y})`;
+    element('clip-info').textContent = `${clip.frames.length} кадров · ${clip.frames.reduce((sum, frame) => sum + frame.durationMs, 0)} мс · ${clip.width} × ${clip.height} · точка опоры (${clip.pivot.x}, ${clip.pivot.y})`;
     element('pose-note').textContent = isEffect
-      ? 'Original effect frames on transparent canvases. 80 ms per frame is a preview timing choice. The fireball canvas includes its full trail.'
+      ? 'Исходные кадры эффектов на прозрачном фоне. 80 мс на кадр выбраны для предпросмотра. След огненного шара виден полностью.'
       : clip.uniquePoses === 1
-      ? 'The source board repeats one identical pose in all six frames. Playback is intentionally still; additional idle artwork is needed for visible motion.'
-      : `${clip.uniquePoses} unique poses across ${clip.frames.length} frames. Repeated poses are preserved exactly as illustrated in the source board.`;
+      ? 'На исходном листе во всех шести кадрах одна поза. Поэтому анимация ожидания неподвижна.'
+      : `${clip.uniquePoses} уникальных поз в ${clip.frames.length} кадрах. Повторяющиеся позы сохранены по исходному рисунку.`;
     frames.replaceChildren();
     clip.frames.forEach((frame, index) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.setAttribute('aria-label', `Inspect frame ${index + 1}, ${frame.durationMs} milliseconds`);
+      button.setAttribute('aria-label', `Просмотреть кадр ${index + 1}, ${frame.durationMs} миллисекунд`);
       const image = new Image();
       image.src = base + frame.path;
       image.alt = '';
       const label = document.createElement('span');
-      label.textContent = `${index + 1} · ${frame.durationMs} ms`;
+      label.textContent = `${index + 1} · ${frame.durationMs} мс`;
       button.append(image, label);
       button.addEventListener('click', () => {
         setPlaying(false);
@@ -94,8 +96,8 @@ async function start(): Promise<void> {
   };
   character.addEventListener('change', () => {
     const choices = character.value === 'effects'
-      ? [['fireball', 'Fireball'], ['shield', 'Shield'], ['lightning', 'Lightning']]
-      : [['idle', 'Idle'], ['cast', 'Cast fireball'], ['dodge', 'Dodge']];
+      ? [['fireball', 'Огненный шар'], ['shield', 'Щит'], ['lightning', 'Молния']]
+      : [['idle', 'Ожидание'], ['cast', 'Огненный шар'], ['dodge', 'Уклонение']];
     animation.replaceChildren(...choices.map(([value, label]) => new Option(label, value)));
     selectClip();
   });
@@ -119,7 +121,7 @@ async function start(): Promise<void> {
   document.querySelector<HTMLElement>('.arena')!.style.backgroundImage = `url("${base + manifest.arena}")`;
   selectClip();
   element('workshop').hidden = false;
-  element('load-status').textContent = 'Character and spell workshop · 57 extracted SVG assets · transparent frames';
+  element('load-status').textContent = 'Мастерская персонажей и заклинаний · 57 SVG-ресурсов · прозрачные кадры';
   frameId = requestAnimationFrame(tick);
   window.addEventListener('pagehide', () => cancelAnimationFrame(frameId));
   window.addEventListener('pageshow', (event) => { if (event.persisted) { previousTime = performance.now(); frameId = requestAnimationFrame(tick); } });
@@ -127,6 +129,6 @@ async function start(): Promise<void> {
 }
 
 void start().catch((error: unknown) => {
-  element('load-status').textContent = error instanceof Error ? error.message : 'Artwork could not load.';
+  element('load-status').textContent = error instanceof Error ? error.message : 'Не удалось загрузить графику.';
   element('load-retry').hidden = false;
 });

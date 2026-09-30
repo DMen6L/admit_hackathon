@@ -141,7 +141,7 @@ export class SpellAudio {
       const existing = this.sampleLoads.get(spell);
       if (existing) { loads.push(existing); continue; }
       const loading = fetch(audioAssetUrl(settings.file))
-        .then((response) => { if (!response.ok) throw new Error('Audio unavailable'); return response.arrayBuffer(); })
+        .then((response) => { if (!response.ok) throw new Error('Звук недоступен'); return response.arrayBuffer(); })
         .then(async (data) => {
           this.pendingSamples.set(spell, data);
           await this.decodePendingSamples();
@@ -220,9 +220,9 @@ export const spellAudio = new SpellAudio();
 export function mountSoundToggle(button: HTMLButtonElement): () => void {
   void spellAudio.preload();
   const unsubscribe = spellAudio.subscribe((muted) => {
-    button.textContent = muted ? 'Sound off' : 'Sound on';
+    button.textContent = muted ? 'Звук выключен' : 'Звук включён';
     button.setAttribute('aria-pressed', String(!muted));
-    button.setAttribute('aria-label', muted ? 'Enable spell sounds' : 'Mute spell sounds');
+    button.setAttribute('aria-label', muted ? 'Включить звуки заклинаний' : 'Выключить звуки заклинаний');
   });
   const toggle = () => spellAudio.setMuted(!spellAudio.isMuted);
   const unlock = () => { void spellAudio.unlock(); };

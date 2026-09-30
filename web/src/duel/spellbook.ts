@@ -6,12 +6,12 @@ interface SpellGuideEntry {
 }
 
 const SPELLS: readonly SpellGuideEntry[] = [
-  { name: 'Fireball', glyph: '△', gesture: 'Draw a triangle', effect: 'Traveling attack · 20 damage' },
-  { name: 'Shield', glyph: '○', gesture: 'Draw a circle', effect: 'Block the next incoming hit' },
-  { name: 'Lightning', glyph: 'ϟ', gesture: 'Draw a zigzag', effect: 'Quick strike · 15 damage' },
-  { name: 'Twin Flare', glyph: '⧖', gesture: 'Start at center; draw top, then bottom triangle in one stroke', effect: 'Slow, powerful attack · 45 damage' },
-  { name: 'Time Lock', glyph: '□', gesture: 'Draw a square or rectangle', effect: 'Delay the opponent’s current or next attack by 1.5 seconds' },
-  { name: 'Spark', glyph: '━', gesture: 'Draw one straight line', effect: 'Fast, light attack · 7 damage' },
+  { name: 'Огненный шар', glyph: '△', gesture: 'Нарисуйте треугольник', effect: 'Атака · 20 урона' },
+  { name: 'Щит', glyph: '○', gesture: 'Нарисуйте круг', effect: 'Блокирует следующий удар' },
+  { name: 'Молния', glyph: 'ϟ', gesture: 'Нарисуйте зигзаг', effect: 'Быстрый удар · 15 урона' },
+  { name: 'Двойное пламя', glyph: '⧖', gesture: 'Начните в центре; одним движением нарисуйте верхний и нижний треугольники', effect: 'Мощная атака · 45 урона' },
+  { name: 'Остановка времени', glyph: '□', gesture: 'Нарисуйте квадрат или прямоугольник', effect: 'Задерживает текущую или следующую атаку соперника на 1,5 секунды' },
+  { name: 'Искра', glyph: '━', gesture: 'Нарисуйте одну прямую линию', effect: 'Быстрая атака · 7 урона' },
 ];
 
 export function mountSpellbook(root: HTMLElement): { dispose(): void } {

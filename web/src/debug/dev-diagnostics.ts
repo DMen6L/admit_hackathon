@@ -25,18 +25,18 @@ export function mountDiagnostics(options: DiagnosticsOptions): DevDiagnostics {
   const panel = document.createElement('details');
   panel.className = 'diagnostics';
   panel.innerHTML = `
-    <summary>Recognition diagnostics</summary>
+    <summary>Диагностика распознавания</summary>
     <div class="buttons">
-      <button id="capture-toggle" type="button">Start local capture</button>
-      <button id="capture-download" type="button" disabled>Download capture</button>
-      <button id="replay-open" type="button">Replay capture JSON</button>
+      <button id="capture-toggle" type="button">Начать локальную запись</button>
+      <button id="capture-download" type="button" disabled>Скачать запись</button>
+      <button id="replay-open" type="button">Воспроизвести JSON-запись</button>
       <input id="replay-file" type="file" accept="application/json,.json" hidden>
     </div>
-    <p id="debug-status">Capture is off.</p>
-    <canvas id="debug-path" width="320" height="240" aria-label="Last raw and filtered stroke"></canvas>
-    <p>Gray: raw fingertip path. Gold: filtered path.</p>
-    <pre id="debug-pose">No hand tracked yet.</pre>
-    <pre id="debug-candidates">No completed cast yet.</pre>`;
+    <p id="debug-status">Запись выключена.</p>
+    <canvas id="debug-path" width="320" height="240" aria-label="Последняя исходная и обработанная траектория"></canvas>
+    <p>Серый: исходная траектория пальца. Золотой: обработанная траектория.</p>
+    <pre id="debug-pose">Рука пока не обнаружена.</pre>
+    <pre id="debug-candidates">Завершённых попыток пока нет.</pre>`;
   document.querySelector('.tracker')!.append(panel);
 
   const captureToggle = panel.querySelector<HTMLButtonElement>('#capture-toggle')!;
@@ -84,9 +84,9 @@ export function mountDiagnostics(options: DiagnosticsOptions): DevDiagnostics {
       capture.reset();
       options.resetStroke();
     }
-    captureToggle.textContent = captureEnabled ? 'Stop local capture' : 'Start local capture';
+    captureToggle.textContent = captureEnabled ? 'Остановить локальную запись' : 'Начать локальную запись';
     captureDownload.disabled = captureEnabled;
-    debugStatus.textContent = captureEnabled ? 'Recording landmarks locally.' : 'Capture ready to download.';
+    debugStatus.textContent = captureEnabled ? 'Точки кисти записываются локально.' : 'Запись готова к скачиванию.';
   });
   captureDownload.addEventListener('click', () => {
     const blob = new Blob([JSON.stringify(capture.export())], { type: 'application/json' });
@@ -105,7 +105,7 @@ export function mountDiagnostics(options: DiagnosticsOptions): DevDiagnostics {
       const imported = parseCapture(JSON.parse(contents));
       options.stopCamera();
       captureEnabled = false;
-      captureToggle.textContent = 'Start local capture';
+      captureToggle.textContent = 'Начать локальную запись';
       const casts = replayCapture(imported, options.shapeEvaluator);
       const last = casts.at(-1);
       if (last) {
@@ -114,12 +114,12 @@ export function mountDiagnostics(options: DiagnosticsOptions): DevDiagnostics {
       } else {
         const partial = imported.partialStrokes?.find((stroke) => stroke.points.length > 0);
         if (partial) drawDebugPath(partial);
-        debugCandidates.textContent = 'No completed cast. Inspect the pose history for tracking, pointing, or palm release failures.';
+        debugCandidates.textContent = 'Нет завершённого заклинания. Проверьте историю поз, положение пальца и раскрытие ладони.';
       }
       debugPose.textContent = JSON.stringify(imported.frames.at(-1)?.poses ?? [], null, 2);
-      debugStatus.textContent = `Replayed ${casts.length} completed cast${casts.length === 1 ? '' : 's'}.`;
+      debugStatus.textContent = `Воспроизведено заклинаний: ${casts.length}.`;
     }).catch((error: unknown) => {
-      debugStatus.textContent = `Replay failed: ${error instanceof Error ? error.message : 'invalid capture'}`;
+      debugStatus.textContent = `Ошибка воспроизведения: ${error instanceof Error ? error.message : 'некорректная запись'}`;
     }).finally(() => { replayFile.value = ''; });
   });
 
@@ -137,9 +137,9 @@ export function mountDiagnostics(options: DiagnosticsOptions): DevDiagnostics {
       }
       if (captureEnabled && !capture.recordFrame(results, processed, timestampMs, width, height, strokes)) {
         captureEnabled = false;
-        captureToggle.textContent = 'Start local capture';
+        captureToggle.textContent = 'Начать локальную запись';
         captureDownload.disabled = false;
-        debugStatus.textContent = 'Capture reached 900 frames. Download it and start a new capture.';
+        debugStatus.textContent = 'Записано 900 кадров. Скачайте запись и начните новую.';
       }
     },
     onCast(stroke, evaluation, timestampMs) {

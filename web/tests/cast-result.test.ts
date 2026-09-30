@@ -30,7 +30,7 @@ describe('cast result presentation', () => {
     const result = presentCastResult(evaluation('matched'));
 
     expect(result.state).toBe('success');
-    expect(result.title).toBe('SPELL CAST');
+    expect(result.title).toBe('ЗАКЛИНАНИЕ СОЗДАНО');
     expect(result.detail).toBe('Triangle rune');
   });
 
@@ -38,7 +38,7 @@ describe('cast result presentation', () => {
     const result = presentCastResult(evaluation('near-miss', 'Use fewer turns'));
 
     expect(result.state).toBe('near-miss');
-    expect(result.title).toBe('ALMOST');
+    expect(result.title).toBe('ПОЧТИ ПОЛУЧИЛОСЬ');
     expect(result.detail).toBe('Triangle rune');
     expect(result.correction).toBe('Use fewer turns');
   });
@@ -46,7 +46,7 @@ describe('cast result presentation', () => {
   it('distinguishes failure from cancellation', () => {
     const failure = presentCastResult(evaluation('unrecognized'));
     expect(failure.state).toBe('failure');
-    expect(failure.detail).toBe('No spell matched');
+    expect(failure.detail).toBe('Руна не найдена');
     expect(presentCastResult(evaluation('insufficient')).state).toBe('cancelled');
   });
 });

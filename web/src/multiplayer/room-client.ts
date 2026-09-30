@@ -35,7 +35,7 @@ export class RoomClient {
     this.socket = socket;
     this.seq = 0;
     this.revision = -1;
-    this.events.onStatus(this.attempts ? 'Reconnecting to your duel…' : 'Connecting to your duel…');
+    this.events.onStatus(this.attempts ? 'Повторно подключаемся к дуэли…' : 'Подключаемся к дуэли…');
     socket.addEventListener('open', () => {
       this.attempts = 0;
       socket.send(JSON.stringify({ type: 'authenticate', token: this.token }));
@@ -61,22 +61,22 @@ export class RoomClient {
         this.hasOffset = true;
       } else if (data.type === 'error') {
         if (typeof data.seq === 'number') this.events.onCastRejected(String(data.code ?? 'unknown error'), data.seq);
-        this.events.onError(`Cast rejected: ${String(data.code ?? 'unknown error')}`);
+        this.events.onError('Заклинание отклонено. Попробуйте ещё раз.');
       }
     });
     socket.addEventListener('close', (event) => {
       if (this.pingTimer !== undefined) window.clearInterval(this.pingTimer);
       if (this.disposed) return;
       if (event.code === 1008) {
-        this.events.onError('Room access expired or was denied. Return to practice and sign in again.');
+        this.events.onError('Доступ к комнате истёк или был отклонён. Войдите снова.');
         return;
       }
       this.attempts += 1;
       const delay = Math.min(4000, 400 * 2 ** Math.min(this.attempts, 4));
-      this.events.onStatus('Connection lost. Reconnecting…');
+      this.events.onStatus('Соединение потеряно. Подключаемся снова…');
       this.reconnectTimer = window.setTimeout(() => this.connect(), delay);
     });
-    socket.addEventListener('error', () => this.events.onStatus('Network connection interrupted.'));
+    socket.addEventListener('error', () => this.events.onStatus('Сетевое соединение прервано.'));
   }
 
   cast(spellId: string): number | false {

@@ -22,33 +22,33 @@ export interface SpellDefinition {
 export const DEFAULT_SPELL_DEFINITIONS: readonly SpellDefinition[] = [
   {
     spellId: 'rune.triangle',
-    name: 'Fireball',
-    runeInterpretation: 'A triangle focuses flame into a traveling attack.',
+    name: 'Огненный шар',
+    runeInterpretation: 'Треугольник направляет пламя в атакующий снаряд.',
   },
   {
     spellId: 'rune.circle',
-    name: 'Shield',
-    runeInterpretation: 'The unbroken ring absorbs the next incoming hit.',
+    name: 'Щит',
+    runeInterpretation: 'Замкнутый круг отражает следующий удар.',
   },
   {
     spellId: 'rune.lightning',
-    name: 'Lightning',
-    runeInterpretation: 'Alternating turns focus a quick electrical strike.',
+    name: 'Молния',
+    runeInterpretation: 'Чередующиеся повороты создают быстрый электрический удар.',
   },
   {
     spellId: 'rune.hourglass',
-    name: 'Twin Flare',
-    runeInterpretation: 'Two joined triangles charge a slow, powerful attack.',
+    name: 'Двойное пламя',
+    runeInterpretation: 'Два соединённых треугольника создают медленную мощную атаку.',
   },
   {
     spellId: 'rune.square',
-    name: 'Time Lock',
-    runeInterpretation: 'Four walls slow the opponent’s next attack.',
+    name: 'Остановка времени',
+    runeInterpretation: 'Четыре стороны замедляют следующую атаку соперника.',
   },
   {
     spellId: 'rune.line',
-    name: 'Spark',
-    runeInterpretation: 'A single stroke releases a fast, light attack.',
+    name: 'Искра',
+    runeInterpretation: 'Одна линия создаёт быструю лёгкую атаку.',
   },
 ];
 

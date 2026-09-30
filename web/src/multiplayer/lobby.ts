@@ -1,5 +1,6 @@
 import type { ApiAuthService } from '../auth/auth-service';
 import { normalizeRoomCode } from './room-code';
+import { serverError } from '../ui/server-error';
 
 export function mountRoomLobby(auth: ApiAuthService): void {
   const root = document.querySelector<HTMLElement>('#room-lobby')!;
@@ -15,39 +16,39 @@ export function mountRoomLobby(auth: ApiAuthService): void {
   };
   create.addEventListener('click', async () => {
     const token = auth.accessToken();
-    if (!token) { status.textContent = 'Sign in again to create a room.'; return; }
+    if (!token) { status.textContent = 'Войдите снова, чтобы создать комнату.'; return; }
     create.disabled = true;
-    status.textContent = 'Creating a room…';
+    status.textContent = 'Создаём комнату…';
     try {
       const response = await fetch(`${auth.apiBaseUrl()}/api/rooms`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` },
       });
       const body = await response.json() as { code?: string; detail?: string };
       const code = body.code && normalizeRoomCode(body.code);
-      if (!response.ok || !code) throw new Error(body.detail ?? 'Could not create room.');
+      if (!response.ok || !code) throw new Error(serverError(body.detail, 'Не удалось создать комнату.'));
       enter(code);
     } catch (error) {
-      status.textContent = error instanceof Error ? error.message : 'Could not create room.';
+      status.textContent = error instanceof Error ? error.message : 'Не удалось создать комнату.';
       create.disabled = false;
     }
   });
   join.addEventListener('submit', async (event) => {
     event.preventDefault();
     const code = normalizeRoomCode(input.value);
-    if (!code) { status.textContent = 'Enter the six-character room code.'; input.focus(); return; }
+    if (!code) { status.textContent = 'Введите шестизначный код комнаты.'; input.focus(); return; }
     const token = auth.accessToken();
-    if (!token) { status.textContent = 'Sign in again to join a room.'; return; }
+    if (!token) { status.textContent = 'Войдите снова, чтобы присоединиться к комнате.'; return; }
     joinButton.disabled = true;
-    status.textContent = `Checking room ${code}…`;
+    status.textContent = `Проверяем комнату ${code}…`;
     try {
       const response = await fetch(`${auth.apiBaseUrl()}/api/rooms/${code}/join`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` },
       });
       const body = await response.json() as { detail?: string };
-      if (!response.ok) throw new Error(body.detail ?? 'Could not join this room.');
+      if (!response.ok) throw new Error(serverError(body.detail, 'Не удалось войти в комнату.'));
       enter(code);
     } catch (error) {
-      status.textContent = error instanceof Error ? error.message : 'Could not join this room.';
+      status.textContent = error instanceof Error ? error.message : 'Не удалось войти в комнату.';
       joinButton.disabled = false;
     }
   });

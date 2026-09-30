@@ -576,27 +576,27 @@ function scoreCandidate(attempt: ShapeFeatures, template: ShapeTemplate, templat
 function correctionFor(candidate: Candidate): string {
   const { diagnostics, template } = candidate;
   if (diagnostics.topologyError > 0.35) {
-    return topologyFor(template) === 'closed' ? 'Bring the end back near the start' : 'Leave the shape open';
+    return topologyFor(template) === 'closed' ? 'Подведите конец линии ближе к началу' : 'Не замыкайте фигуру';
   }
-  if (geometryFor(template) === 'circle' && candidate.straightRunFraction > 0.20) return 'Round off the straight sections';
-  if (geometryFor(template) === 'circle' && diagnostics.radialError > 0.35) return 'Make the loop rounder';
-  if (geometryFor(template) === 'circle' && diagnostics.coverageError > 0.35) return 'Complete more of the circular loop';
+  if (geometryFor(template) === 'circle' && candidate.straightRunFraction > 0.20) return 'Закруглите прямые участки';
+  if (geometryFor(template) === 'circle' && diagnostics.radialError > 0.35) return 'Сделайте петлю круглее';
+  if (geometryFor(template) === 'circle' && diagnostics.coverageError > 0.35) return 'Дорисуйте круг до конца';
   if (diagnostics.cornerError > 0 || diagnostics.turnError > 0) {
     const corners = template.expectedCorners ?? candidate.features.corners;
-    return `Use about ${corners} clear turn${corners === 1 ? '' : 's'}`;
+    return `Сделайте примерно ${corners} ${corners === 1 ? 'чёткий поворот' : 'чётких поворота'}`;
   }
-  if (diagnostics.closureError > 0.25 && closureFor(template) !== 'ignored') return 'Finish closer to where you started';
-  if (diagnostics.aspectRatioError > 0.35) return 'Make the shape wider or taller';
-  if (diagnostics.directionError > 0.35) return 'Start the gesture in the expected direction';
-  if (diagnostics.pointError > 0.18) return 'Follow the outline more closely';
-  return 'Follow the broad outline more closely';
+  if (diagnostics.closureError > 0.25 && closureFor(template) !== 'ignored') return 'Закончите ближе к началу линии';
+  if (diagnostics.aspectRatioError > 0.35) return 'Сделайте фигуру шире или выше';
+  if (diagnostics.directionError > 0.35) return 'Начните движение в нужном направлении';
+  if (diagnostics.pointError > 0.18) return 'Точнее повторите контур руны';
+  return 'Нарисуйте контур руны чётче';
 }
 
 function emptyEvaluation(status: 'insufficient' | 'unrecognized'): ShapeEvaluation {
   return {
     status,
     score: 0,
-    correction: status === 'unrecognized' ? 'No supported shape matched' : undefined,
+    correction: status === 'unrecognized' ? 'Ни одна руна не распознана' : undefined,
     ambiguous: false,
     diagnostics: { ...ZERO_DIAGNOSTICS },
   };
@@ -691,8 +691,8 @@ export class ShapeEvaluator {
       templateName: status === 'unrecognized' ? undefined : best.template.name,
       score: best.score,
       correction: status === 'matched' ? undefined : ambiguous
-        ? 'Several runes look possible; draw a clearer outline'
-        : status === 'near-miss' ? correctionFor(best) : 'No supported shape matched',
+        ? 'Рисунок похож на несколько рун. Нарисуйте контур чётче'
+        : status === 'near-miss' ? correctionFor(best) : 'Ни одна руна не распознана',
       ambiguous,
       diagnostics: best.diagnostics,
       candidates: summaries,
@@ -710,7 +710,7 @@ function circleTemplate(): PathPoint[] {
 export const DEFAULT_SHAPE_TEMPLATES: ShapeTemplate[] = [
   {
     id: 'triangle',
-    name: 'Triangle rune',
+    name: 'Треугольная руна',
     geometry: 'polygon',
     topology: 'closed',
     expectedCorners: 3,
@@ -726,7 +726,7 @@ export const DEFAULT_SHAPE_TEMPLATES: ShapeTemplate[] = [
   },
   {
     id: 'circle',
-    name: 'Circle rune',
+    name: 'Круглая руна',
     geometry: 'circle',
     topology: 'closed',
     expectedCorners: 0,
@@ -737,7 +737,7 @@ export const DEFAULT_SHAPE_TEMPLATES: ShapeTemplate[] = [
   },
   {
     id: 'zigzag',
-    name: 'Lightning rune',
+    name: 'Руна молнии',
     geometry: 'polyline',
     topology: 'open',
     expectedCorners: 2,
@@ -756,7 +756,7 @@ export const DEFAULT_SHAPE_TEMPLATES: ShapeTemplate[] = [
   },
   {
     id: 'hourglass',
-    name: 'Twin triangle rune',
+    name: 'Руна двойного треугольника',
     geometry: 'polygon',
     topology: 'closed',
     expectedCorners: 6,
@@ -775,7 +775,7 @@ export const DEFAULT_SHAPE_TEMPLATES: ShapeTemplate[] = [
   },
   {
     id: 'square',
-    name: 'Square rune',
+    name: 'Квадратная руна',
     geometry: 'polygon',
     topology: 'closed',
     expectedCorners: 4,
@@ -792,7 +792,7 @@ export const DEFAULT_SHAPE_TEMPLATES: ShapeTemplate[] = [
   },
   {
     id: 'line',
-    name: 'Line rune',
+    name: 'Линейная руна',
     geometry: 'polyline',
     topology: 'open',
     expectedCorners: 0,

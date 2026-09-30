@@ -149,9 +149,9 @@ describe('raised-index casting recognition', () => {
 
     expect(open.indexRaised).toBe(true);
     expect(open.otherFingersCurled).toBe(false);
-    expect(open.correction).toContain('Curl');
+    expect(open.correction).toContain('Согните');
     expect(bent.indexRaised).toBe(false);
-    expect(bent.correction).toContain('Straighten');
+    expect(bent.correction).toContain('Выпрямите');
   });
 
   it('lets the thumb rest naturally during pointing and palm release', () => {
@@ -215,7 +215,7 @@ describe('raised-index casting recognition', () => {
     processHands(bent, 132);
     const pending = processHands(bent, 252).hands[0];
     expect(pending.phase).toBe('awaiting-release');
-    expect(pending.releaseCorrection).toContain('Extend');
+    expect(pending.releaseCorrection).toContain('Распрямите');
 
     for (let frame = 0; frame < 3; frame += 1) {
       const state = processHands(open, 265 + frame * 33).hands[0];
@@ -239,7 +239,7 @@ describe('raised-index casting recognition', () => {
     expect(side.allFingersExtended).toBe(true);
     expect(side.palmFacingCamera).toBe(false);
     expect(side.releasePose).toBe(false);
-    expect(side.releaseCorrection).toContain('palm');
+    expect(side.releaseCorrection).toContain('ладонь');
   });
 
   it('cancels a pending release after the timeout', () => {
@@ -265,7 +265,7 @@ describe('raised-index casting recognition', () => {
     const processed = processHands(result, 99);
 
     expect(processed.castingHands).toBe(2);
-    expect(processed.hands.map((hand) => hand.label)).toEqual(['Left', 'Right']);
+    expect(processed.hands.map((hand) => hand.label)).toEqual(['Левая рука', 'Правая рука']);
     expect(processed.hands.every((hand) => hand.justStarted)).toBe(true);
   });
 

@@ -1,86 +1,86 @@
 <!doctype html>
-<html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Wizard Duel · Battle</title></head><body class="battle-page">
-<p id="battle-session-status" role="status">Entering the courtyard…</p>
+<html lang="ru"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Wizard Duel · Дуэль</title></head><body class="battle-page">
+<p id="battle-session-status" role="status">Выходим на арену…</p>
     <main id="game-screen" class="game-shell battle-shell" hidden>
       <header class="game-header">
         <div>
-          <a class="battle-back" href="./lobby.html">← Back to lobby</a>
-          <p class="eyebrow">Wizard Duel / Training bot</p>
-          <h1>Moonlit courtyard</h1>
-          <p>Draw your rune. Release your magic.</p>
+          <a class="battle-back" href="./lobby.html">← В лобби</a>
+          <p class="eyebrow">Wizard Duel / Тренировка с ботом</p>
+          <h1>Лунная арена</h1>
+          <p>Нарисуйте руну. Выпустите магию.</p>
         </div>
-        <div class="account-menu" aria-label="Signed-in account">
-          <button id="sound-toggle" type="button" aria-pressed="true">Sound on</button>
-          <a id="current-user" href="./profile.html" aria-label="Open your profile"></a>
-          <button id="sign-out" type="button">Sign out</button>
+        <div class="account-menu" aria-label="Текущий аккаунт">
+          <button id="sound-toggle" type="button" aria-pressed="true">Звук включён</button>
+          <a id="current-user" href="./profile.html" aria-label="Открыть профиль"></a>
+          <button id="sign-out" type="button">Выйти</button>
         </div>
       </header>
 
-      <section class="battle-room" data-room-panel hidden aria-label="Invite a friend">
-        <div><span class="battle-room__eyebrow">Private room</span><strong data-room-code></strong><p>Share this code or copy the invite link. The duel starts when your friend connects.</p></div>
-        <button type="button" data-copy-room>Copy invite link</button>
+      <section class="battle-room" data-room-panel hidden aria-label="Пригласить друга">
+        <div><span class="battle-room__eyebrow">Приватная комната</span><strong data-room-code></strong><p>Отправьте другу этот код или ссылку. Дуэль начнётся, когда он подключится.</p></div>
+        <button type="button" data-copy-room>Скопировать ссылку</button>
       </section>
 
-      <section id="duel" class="duel" aria-label="Practice duel">
-        <div class="duel-head"><span><strong data-player-name="0">Player</strong> · ARCANE WARDEN</span><b>VS</b><span><strong data-player-name="1">Computer (AI)</strong> · EMBER SHADE</span></div>
+      <section id="duel" class="duel" aria-label="Тренировочная дуэль">
+        <div class="duel-head"><span><strong data-player-name="0">Игрок</strong> · ХРАНИТЕЛЬ МАГИИ</span><b>VS</b><span><strong data-player-name="1">Компьютер</strong> · ТЕНЬ ПЛАМЕНИ</span></div>
         <div class="duel-hud">
-          <div><label for="berik-health"><span data-player-name="0">Player</span><span data-health-label="0">100 / 100</span></label><progress id="berik-health" data-health="0" max="100" value="100"></progress></div>
-          <div><label for="alisher-health"><span data-player-name="1">Computer (AI)</span><span data-health-label="1">100 / 100</span></label><progress id="alisher-health" data-health="1" max="100" value="100"></progress></div>
+          <div><label for="berik-health"><span data-player-name="0">Игрок</span><span data-health-label="0">100 / 100</span></label><progress id="berik-health" data-health="0" max="100" value="100"></progress></div>
+          <div><label for="alisher-health"><span data-player-name="1">Компьютер</span><span data-health-label="1">100 / 100</span></label><progress id="alisher-health" data-health="1" max="100" value="100"></progress></div>
         </div>
         <div class="duel-stage">
-          <canvas width="1460" height="476" aria-label="Player and opponent casting spells in the arena">Use your hand to cast spells.</canvas>
+          <canvas width="1460" height="476" aria-label="Игрок и соперник применяют заклинания на арене">Колдуйте движением руки.</canvas>
           <div class="enemy-telegraph" data-threat hidden>
             <span class="enemy-telegraph__rune" data-threat-rune aria-hidden="true"></span>
             <div class="enemy-telegraph__copy">
               <strong data-threat-label></strong>
               <span data-threat-phase></span>
-              <progress data-threat-progress max="3000" value="0" aria-label="Enemy spell charge"></progress>
+              <progress data-threat-progress max="3000" value="0" aria-label="Заряд заклинания противника"></progress>
             </div>
           </div>
           <div class="duel-overlay" data-overlay hidden><strong data-overlay-title></strong><span data-overlay-detail></span></div>
         </div>
         <div class="duel-controls">
-          <button type="button" data-pause aria-pressed="false">Pause</button><button type="button" data-reset>Restart duel</button>
+          <button type="button" data-pause aria-pressed="false">Пауза</button><button type="button" data-reset>Начать заново</button>
         </div>
         <details class="duel-manual">
-          <summary>Cast without a camera</summary>
+          <summary>Заклинания без камеры</summary>
           <div class="duel-manual__spells">
-            <button type="button" data-spell="fireball">△ Fireball</button>
-            <button type="button" data-spell="shield">○ Shield</button>
-            <button type="button" data-spell="lightning">ϟ Lightning</button>
-            <button type="button" data-spell="twin-flare">⧖ Twin Flare</button>
-            <button type="button" data-spell="time-lock">□ Time Lock</button>
-            <button type="button" data-spell="spark">━ Spark</button>
+            <button type="button" data-spell="fireball">△ Огненный шар</button>
+            <button type="button" data-spell="shield">○ Щит</button>
+            <button type="button" data-spell="lightning">ϟ Молния</button>
+            <button type="button" data-spell="twin-flare">⧖ Двойное пламя</button>
+            <button type="button" data-spell="time-lock">□ Остановка времени</button>
+            <button type="button" data-spell="spark">━ Искра</button>
           </div>
         </details>
-        <div class="duel-readiness"><label for="cast-readiness">Your next cast <span data-ready-label>Ready</span></label><progress id="cast-readiness" max="900" value="900" data-readiness></progress></div>
-        <p data-duel-status role="status" aria-live="polite">Preparing the arena…</p>
-        <p data-load-error hidden>Artwork could not load. <a href="./battle.html">Reload and try again</a></p>
+        <div class="duel-readiness"><label for="cast-readiness">Следующее заклинание <span data-ready-label>Готово</span></label><progress id="cast-readiness" max="900" value="900" data-readiness></progress></div>
+        <p data-duel-status role="status" aria-live="polite">Готовим арену…</p>
+        <p data-load-error hidden>Не удалось загрузить графику. <a href="./battle.html">Перезагрузите страницу и попробуйте снова</a></p>
         
-        <p data-duel-help>Watch your opponent's charge. Draw a circle to shield, or use Time Lock to delay their spell.</p>
+        <p data-duel-help>Следите за атакой соперника. Нарисуйте круг для щита или квадрат, чтобы задержать заклинание.</p>
       </section>
 
-      <section class="tracker" aria-label="Hand tracking preview">
-        <div class="tracking-heading"><h2 class="tracking-title">Your spellcasting hand</h2><div class="tracking-actions"><button id="spellbook-toggle" type="button" aria-controls="spellbook-panel" aria-expanded="false">Spells <span id="spellbook-count"></span></button><button id="camera-view-toggle" type="button" aria-pressed="false">Show camera</button></div></div>
+      <section class="tracker" aria-label="Отслеживание руки">
+        <div class="tracking-heading"><h2 class="tracking-title">Ваша волшебная рука</h2><div class="tracking-actions"><button id="spellbook-toggle" type="button" aria-controls="spellbook-panel" aria-expanded="false">Заклинания <span id="spellbook-count"></span></button><button id="camera-view-toggle" type="button" aria-pressed="false">Показать камеру</button></div></div>
         <aside id="spellbook-panel" class="spellbook-panel" aria-labelledby="spellbook-title" tabindex="-1" hidden>
-          <div class="spellbook-panel__heading"><div><p class="eyebrow">Casting guide</p><h3 id="spellbook-title">Spellbook</h3></div><button id="spellbook-close" type="button" aria-label="Close spellbook">×</button></div>
-          <p class="spellbook-panel__help">Raise your index finger to draw. Open your palm to cast.</p>
+          <div class="spellbook-panel__heading"><div><p class="eyebrow">Как колдовать</p><h3 id="spellbook-title">Книга заклинаний</h3></div><button id="spellbook-close" type="button" aria-label="Закрыть книгу заклинаний">×</button></div>
+          <p class="spellbook-panel__help">Поднимите указательный палец, чтобы рисовать. Раскройте ладонь, чтобы применить заклинание.</p>
           <ul id="spellbook-list" class="spellbook-list"></ul>
         </aside>
         <div class="preview" data-view="skeleton">
-          <video id="camera" autoplay muted playsinline aria-label="Mirrored webcam view"></video>
+          <video id="camera" autoplay muted playsinline aria-label="Зеркальное изображение с камеры"></video>
           <canvas id="path" aria-hidden="true"></canvas>
           <canvas id="landmarks" aria-hidden="true"></canvas>
-          <p id="placeholder">Your camera preview will appear here.</p>
+          <p id="placeholder">Здесь появится изображение с камеры.</p>
         </div>
         <div class="toolbar">
           <div class="buttons">
-            <button id="start" type="button">Start camera</button>
-            <button id="stop" type="button" disabled>Stop camera</button>
+            <button id="start" type="button">Включить камеру</button>
+            <button id="stop" type="button" disabled>Выключить камеру</button>
           </div>
           <div class="readouts" aria-live="polite">
-            <span id="hand-count">0 hands detected</span>
-            <span id="casting-status">Casting: waiting for a hand</span>
+            <span id="hand-count">Руки не обнаружены</span>
+            <span id="casting-status">Ожидаем руку</span>
           </div>
         </div>
         <aside id="cast-result" class="cast-result" hidden role="status" aria-live="assertive">
@@ -95,7 +95,7 @@
         </aside>
       </section>
 
-      <p id="status" role="status" aria-live="polite">Ready when you are.</p>
-      <p class="privacy">Camera frames are processed on this device. No video is uploaded.</p>
+      <p id="status" role="status" aria-live="polite">Можно начинать.</p>
+      <p class="privacy">Видео обрабатывается на вашем устройстве и не загружается на сервер.</p>
     </main>
 <script type="module" src="/src/main.ts"></script></body></html>

@@ -97,7 +97,8 @@ function distance(a: Point, b: Point): number {
 }
 
 function handLabel(results: HandLandmarkerResult, handIndex: number): string {
-  return results.handedness[handIndex]?.[0]?.categoryName ?? `Hand ${handIndex + 1}`;
+  const label = results.handedness[handIndex]?.[0]?.categoryName;
+  return label === 'Left' ? 'Левая рука' : label === 'Right' ? 'Правая рука' : `Рука ${handIndex + 1}`;
 }
 
 function fingerIsCurled(points: Point[], pipIndex: number, tipIndex: number, handScale: number): boolean {
@@ -133,14 +134,14 @@ function palmFacingCamera(points: Point[]): boolean {
 }
 
 function correctionFor(diagnostics: CastingDiagnostics): string | undefined {
-  if (!diagnostics.indexRaised) return 'Straighten your index finger';
-  if (!diagnostics.otherFingersCurled) return 'Curl your middle, ring, and pinky fingers';
+  if (!diagnostics.indexRaised) return 'Выпрямите указательный палец';
+  if (!diagnostics.otherFingersCurled) return 'Согните средний, безымянный пальцы и мизинец';
   return undefined;
 }
 
 function releaseCorrectionFor(diagnostics: CastingDiagnostics): string | undefined {
-  if (!diagnostics.releaseFingersExtended) return 'Extend your four fingers to release';
-  if (!diagnostics.palmFacingCamera) return 'Turn your palm toward the camera';
+  if (!diagnostics.releaseFingersExtended) return 'Распрямите четыре пальца, чтобы применить заклинание';
+  if (!diagnostics.palmFacingCamera) return 'Поверните ладонь к камере';
   return undefined;
 }
 

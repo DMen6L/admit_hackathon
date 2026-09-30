@@ -9,7 +9,7 @@ import { roomCodeFromSearch } from '../multiplayer/room-code';
 
 function requiredElement<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
-  if (!element) throw new Error(`Missing required element: ${selector}`);
+  if (!element) throw new Error(`Не найден обязательный элемент: ${selector}`);
   return element;
 }
 
@@ -48,7 +48,7 @@ export class AuthController {
       else this.showLogin();
     } catch {
       this.showLogin();
-      this.formError.textContent = 'Your session could not be restored. Please sign in again.';
+      this.formError.textContent = 'Не удалось восстановить сеанс. Войдите снова.';
       this.formError.hidden = false;
     }
   }
@@ -81,8 +81,8 @@ export class AuthController {
       this.formError.textContent = error instanceof InvalidCredentialsError || error instanceof AuthRequestError
         ? error.message
         : this.registering
-          ? 'Account creation is temporarily unavailable. Please try again.'
-          : 'Sign-in is temporarily unavailable. Please try again.';
+          ? 'Регистрация временно недоступна. Попробуйте позже.'
+          : 'Вход временно недоступен. Попробуйте позже.';
       this.formError.hidden = false;
       this.password.select();
     } finally {
@@ -105,8 +105,8 @@ export class AuthController {
   private togglePasswordVisibility(): void {
     const show = this.password.type === 'password';
     this.password.type = show ? 'text' : 'password';
-    this.passwordToggle.textContent = show ? 'Hide' : 'Show';
-    this.passwordToggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    this.passwordToggle.textContent = show ? 'Скрыть' : 'Показать';
+    this.passwordToggle.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
     this.passwordToggle.setAttribute('aria-pressed', String(show));
     this.password.focus();
   }
@@ -115,8 +115,8 @@ export class AuthController {
     this.submitButton.disabled = pending;
     this.modeToggle.disabled = pending;
     this.submitButton.textContent = pending
-      ? (this.registering ? 'Creating your account…' : 'Opening the lobby…')
-      : (this.registering ? 'Create account' : 'Choose your duel');
+      ? (this.registering ? 'Создаём аккаунт…' : 'Открываем лобби…')
+      : (this.registering ? 'Создать аккаунт' : 'Выбрать дуэль');
     this.form.setAttribute('aria-busy', String(pending));
   }
 
@@ -130,13 +130,13 @@ export class AuthController {
   private toggleMode(): void {
     this.registering = !this.registering;
     this.clearErrors();
-    this.headingEyebrow.textContent = this.registering ? 'New spellcaster' : 'Welcome back';
-    this.heading.textContent = this.registering ? 'Create your account' : 'Enter the lobby';
+    this.headingEyebrow.textContent = this.registering ? 'Новый маг' : 'С возвращением';
+    this.heading.textContent = this.registering ? 'Создайте аккаунт' : 'Войти в лобби';
     this.headingCopy.textContent = this.registering
-      ? 'Choose a login to begin your spellbook.'
-      : 'Sign in to choose training or a duel with a friend.';
-    this.submitButton.textContent = this.registering ? 'Create account' : 'Choose your duel';
-    this.modeToggle.textContent = this.registering ? 'Already have an account? Sign in' : 'Create an account';
+      ? 'Придумайте логин, чтобы начать игру.'
+      : 'Войдите, чтобы выбрать тренировку или дуэль с другом.';
+    this.submitButton.textContent = this.registering ? 'Создать аккаунт' : 'Выбрать дуэль';
+    this.modeToggle.textContent = this.registering ? 'Уже есть аккаунт? Войти' : 'Создать аккаунт';
     this.demoAccess.hidden = this.registering;
     this.login.focus();
   }

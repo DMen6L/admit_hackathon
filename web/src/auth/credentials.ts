@@ -11,11 +11,11 @@ export function validateCredentials(credentials: SignInCredentials): CredentialE
   const errors: CredentialErrors = {};
   const login = credentials.login.trim().toLowerCase();
 
-  if (!login) errors.login = 'Enter your login.';
-  else if (!LOGIN_PATTERN.test(login)) errors.login = 'Use 3-64 lowercase letters, numbers, dots, dashes, or underscores.';
+  if (!login) errors.login = 'Введите логин.';
+  else if (!LOGIN_PATTERN.test(login)) errors.login = 'Используйте от 3 до 64 строчных латинских букв, цифр, точек, дефисов или подчёркиваний.';
 
-  if (!credentials.password) errors.password = 'Enter your password.';
-  else if (credentials.password.length < 8) errors.password = 'Password must contain at least 8 characters.';
+  if (!credentials.password) errors.password = 'Введите пароль.';
+  else if (credentials.password.length < 8) errors.password = 'Пароль должен содержать не меньше 8 символов.';
 
   return errors;
 }

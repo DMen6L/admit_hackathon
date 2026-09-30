@@ -7,6 +7,7 @@ import { spellAudio } from '../audio/spell-audio';
 import type { BackgroundMusic } from '../audio/background-music';
 import { confirmedSpellSounds, releasedAttackSounds } from '../audio/online-sounds';
 import type { Spell } from '../duel/demo-duel';
+import { serverError } from '../ui/server-error';
 
 const CAST_COOLDOWN_MS = 900;
 const SPELL_IDS: Record<Spell, OnlineSpellId> = {
@@ -14,10 +15,10 @@ const SPELL_IDS: Record<Spell, OnlineSpellId> = {
   'twin-flare': 'rune.hourglass', 'time-lock': 'rune.square', spark: 'rune.line',
 };
 const ATTACK_ART: Record<string, { name: string; rune: string; color: string; effect: string; scale: number }> = {
-  'rune.triangle': { name: 'Fireball', rune: '△', color: '#ffba74', effect: 'fireball', scale: 3 },
-  'rune.lightning': { name: 'Lightning', rune: 'ϟ', color: '#d6baff', effect: 'lightning', scale: 3 },
-  'rune.hourglass': { name: 'Twin Flare', rune: '⧖', color: '#ffdc91', effect: 'fireball', scale: 5 },
-  'rune.line': { name: 'Spark', rune: '━', color: '#bdeaff', effect: 'lightning', scale: 2 },
+  'rune.triangle': { name: 'Огненный шар', rune: '△', color: '#ffba74', effect: 'fireball', scale: 3 },
+  'rune.lightning': { name: 'Молния', rune: 'ϟ', color: '#d6baff', effect: 'lightning', scale: 3 },
+  'rune.hourglass': { name: 'Двойное пламя', rune: '⧖', color: '#ffdc91', effect: 'fireball', scale: 5 },
+  'rune.line': { name: 'Искра', rune: '━', color: '#bdeaff', effect: 'lightning', scale: 2 },
 };
 
 /** Server snapshots own health and results; this module only animates their deadlines. */
@@ -40,31 +41,31 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
   let pendingCast: { seq: number; spellId: OnlineSpellId } | undefined;
   const playedAttackReleases = new Set<string>();
   const warnedOpponentAttacks = new Set<string>();
-  root.setAttribute('aria-label', 'Online duel');
+  root.setAttribute('aria-label', 'Онлайн-дуэль');
   const roomPanel = document.querySelector<HTMLElement>('[data-room-panel]')!;
   roomPanel.hidden = false;
   roomPanel.querySelector<HTMLElement>('[data-room-code]')!.textContent = code;
   roomPanel.querySelector<HTMLButtonElement>('[data-copy-room]')!.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      status.textContent = 'Invite link copied. Send it to your friend.';
+      status.textContent = 'Ссылка скопирована. Отправьте её другу.';
     } catch {
-      status.textContent = `Copy unavailable. Share room code ${code} instead.`;
+      status.textContent = `Не удалось скопировать ссылку. Передайте другу код комнаты ${code} instead.`;
     }
   }, { signal: abort.signal });
-  document.querySelector<HTMLElement>('.game-header .eyebrow')!.textContent = `Wizard Duel / Online room ${code}`;
-  root.querySelector<HTMLElement>('[data-duel-help]')!.textContent = 'All six runes work here. Watch the other player’s attack rune, shield before impact, or use Time Lock to delay their spell. The server checks every cast and hit.';
-  root.querySelector<HTMLElement>('.duel-head b')!.textContent = 'LIVE VS';
+  document.querySelector<HTMLElement>('.game-header .eyebrow')!.textContent = `Wizard Duel / Онлайн-комната ${code}`;
+  root.querySelector<HTMLElement>('[data-duel-help]')!.textContent = 'Здесь доступны все шесть рун. Следите за атакой соперника, ставьте щит до удара или используйте Остановку времени. Сервер проверяет заклинания и удары.';
+  root.querySelector<HTMLElement>('.duel-head b')!.textContent = 'ДУЭЛЬ';
   for (const button of root.querySelectorAll<HTMLButtonElement>('[data-side], [data-pause], [data-reset]')) button.hidden = true;
   root.querySelector<HTMLElement>('[data-load-error]')!.hidden = true;
-  status.textContent = `Joining room ${code}…`;
+  status.textContent = `Подключаемся к комнате ${code}…`;
 
   const playerButtons = [...root.querySelectorAll<HTMLButtonElement>('[data-spell]:not([data-side])')];
   const announce = (now: number) => {
     if (!state) return;
     for (const index of [0, 1]) {
       const player = state.players[index];
-      const name = player?.displayName || player?.login || 'Waiting for friend';
+      const name = player?.displayName || player?.login || 'Ожидаем друга';
       root.querySelectorAll<HTMLElement>(`[data-player-name="${index}"]`).forEach((element) => { element.textContent = name; });
       root.querySelector<HTMLProgressElement>(`[data-health="${index}"]`)!.value = player?.health ?? 0;
       root.querySelector<HTMLElement>(`[data-health-label="${index}"]`)!.textContent = player ? `${player.health} / 100` : '—';
@@ -74,7 +75,7 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
     const ready = me ? Math.min(CAST_COOLDOWN_MS, Math.max(0, now - (me.castReadyAtMs - CAST_COOLDOWN_MS))) : 0;
     root.querySelector<HTMLProgressElement>('[data-readiness]')!.value = ready;
     root.querySelector<HTMLElement>('[data-ready-label]')!.textContent = incoming && me && now >= me.shieldReadyAtMs
-      ? 'Shield ready' : ready >= CAST_COOLDOWN_MS ? 'Ready' : 'Recovering…';
+      ? 'Щит готов' : ready >= CAST_COOLDOWN_MS ? 'Готово' : 'Восстановление…';
     const ownAttack = state.attacks.some((attack) => attack.seat === seat && attack.impactAtMs > now);
     for (const button of playerButtons) {
       const isShield = button.dataset.spell === 'shield';
@@ -89,20 +90,20 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
       threat.classList.toggle('is-incoming', !charging);
       threat.classList.toggle('enemy-left', incoming.seat === 0);
       const art = ATTACK_ART[incoming.spellId];
-      threat.dataset.spell = art?.name.toLowerCase().replace(' ', '-') ?? 'fireball';
+      threat.dataset.spell = (Object.keys(SPELL_IDS) as Spell[]).find((spell) => SPELL_IDS[spell] === incoming.spellId) ?? 'fireball';
       root.querySelector<HTMLElement>('[data-threat-rune]')!.textContent = art?.rune ?? '?';
       const attacker = state.players[incoming.seat];
-      root.querySelector<HTMLElement>('[data-threat-label]')!.textContent = `${attacker.displayName || attacker.login}: ${art?.name ?? 'spell'}${incoming.slowed ? ' · slowed' : ''}`;
-      root.querySelector<HTMLElement>('[data-threat-phase]')!.textContent = charging ? 'Charging — draw a circle to shield!' : 'Incoming — shield now!';
+      root.querySelector<HTMLElement>('[data-threat-label]')!.textContent = `${attacker.displayName || attacker.login}: ${art?.name ?? 'заклинание'}${incoming.slowed ? ' · замедлено' : ''}`;
+      root.querySelector<HTMLElement>('[data-threat-phase]')!.textContent = charging ? 'Зарядка — нарисуйте круг для щита!' : 'Атака близко — ставьте щит!';
       const progress = root.querySelector<HTMLProgressElement>('[data-threat-progress]')!;
       progress.max = incoming.releaseAtMs - incoming.startedAtMs;
       progress.value = charging ? Math.max(0, Math.min(progress.max, now - incoming.startedAtMs)) : progress.max;
     }
     overlay.hidden = state.phase === 'active';
     root.querySelector<HTMLElement>('[data-overlay-title]')!.textContent = state.phase === 'waiting'
-      ? 'Waiting for opponent' : state.winner === null ? 'Draw' : state.winner === seat ? 'You win' : 'Opponent wins';
+      ? 'Ожидаем соперника' : state.winner === null ? 'Ничья' : state.winner === seat ? 'Вы победили' : 'Соперник победил';
     root.querySelector<HTMLElement>('[data-overlay-detail]')!.textContent = state.phase === 'waiting'
-      ? `Share room code ${code}. The duel starts when both players connect.` : 'Return to the lobby to choose another duel.';
+      ? `Передайте код комнаты ${code}. Дуэль начнётся, когда оба игрока подключатся.` : 'Вернитесь в лобби, чтобы выбрать новую дуэль.';
   };
   const sprite = (path: string, x: number, y: number, width: number, height: number, pivot: { x: number; y: number }, scale: number, flip = false) => {
     const image = images.get(path);
@@ -171,17 +172,17 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
   tick();
   const sendCast = (spellId: string) => {
     if (!(ONLINE_SPELL_IDS as readonly string[]).includes(spellId)) {
-      status.textContent = 'That rune is not available in this duel.';
+      status.textContent = 'Эта руна недоступна в дуэли.';
       return;
     }
     const seq = client?.cast(spellId);
     if (seq === undefined || seq === false) {
-      status.textContent = 'Not connected yet. Wait for both players.';
+      status.textContent = 'Подключение ещё не завершено. Дождитесь второго игрока.';
       return;
     }
     pendingCast = { seq, spellId: spellId as OnlineSpellId };
     root.dataset.castPending = 'true';
-    status.textContent = 'Sending your spell…';
+    status.textContent = 'Отправляем заклинание…';
     announce(client?.serverNow() ?? Date.now());
   };
   for (const button of playerButtons) button.addEventListener('click', () => {
@@ -191,12 +192,12 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
 
   void (async () => {
     const token = auth.accessToken();
-    if (!token) throw new Error('Your session expired. Sign in again.');
+    if (!token) throw new Error('Сеанс истёк. Войдите снова.');
     const response = await fetch(`${auth.apiBaseUrl()}/api/rooms/${code}/join`, {
       method: 'POST', headers: { Authorization: `Bearer ${token}` }, signal: abort.signal,
     });
     const body = await response.json() as { seat?: number; detail?: string };
-    if (!response.ok || (body.seat !== 0 && body.seat !== 1)) throw new Error(body.detail ?? 'Could not join this room.');
+    if (!response.ok || (body.seat !== 0 && body.seat !== 1)) throw new Error(serverError(body.detail, 'Не удалось войти в комнату.'));
     seat = body.seat;
     client = new RoomClient(auth.apiBaseUrl(), code, token, {
       onState(next) {
@@ -210,14 +211,14 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
         connected = true;
         state = next;
         music.setActive(next.phase === 'active');
-        status.textContent = next.phase === 'waiting' ? `Room ${code} · waiting for opponent`
-          : next.phase === 'finished' ? 'Match finished.' : 'Online duel active. Draw a rune and release your spell.';
+        status.textContent = next.phase === 'waiting' ? `Комната ${code} · ожидаем соперника`
+          : next.phase === 'finished' ? 'Матч завершён.' : 'Онлайн-дуэль началась. Нарисуйте руну и раскройте ладонь.';
       },
       onCastAck(ack: CastAck) {
         if (pendingCast?.seq !== ack.seq) return;
         pendingCast = undefined;
         delete root.dataset.castPending;
-        status.textContent = 'Spell accepted. Watch the server timing.';
+        status.textContent = 'Заклинание принято. Следите за ареной.';
         announce(client?.serverNow() ?? ack.acceptedAtMs);
       },
       onCastRejected(_code: string, seq: number) {
@@ -227,18 +228,18 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
         announce(client?.serverNow() ?? Date.now());
       },
       onStatus(message) { connected = false; pendingCast = undefined; delete root.dataset.castPending; music.setActive(false); status.textContent = message; },
-      onError(message) { if (message.includes('access expired')) { connected = false; music.setActive(false); } status.textContent = message; },
+      onError(message) { if (message.includes('Доступ к комнате истёк')) { connected = false; music.setActive(false); } status.textContent = message; },
     });
     client.connect();
     const art = await fetch(`${base}manifest.json`, { signal: abort.signal });
-    if (!art.ok) throw new Error('Could not load duel artwork.');
+    if (!art.ok) throw new Error('Не удалось загрузить графику дуэли.');
     manifest = await art.json() as AssetManifest;
     await Promise.all([manifest.arena, ...manifest.clips.flatMap((clip) => clip.frames.map((frame) => frame.path)),
       ...manifest.effects.flatMap((clip) => clip.frames.map((frame) => frame.path))].map(async (path) => {
       const image = new Image(); image.src = base + path; await image.decode(); images.set(path, image);
     }));
   })().catch((error: unknown) => {
-    if (!disposed && (error as Error).name !== 'AbortError') status.textContent = error instanceof Error ? error.message : 'Online duel unavailable.';
+    if (!disposed && (error as Error).name !== 'AbortError') status.textContent = error instanceof Error ? error.message : 'Онлайн-дуэль недоступна.';
   });
   return {
     reset() {},

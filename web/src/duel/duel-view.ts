@@ -1,5 +1,5 @@
 import { sampleAnimation, type AssetManifest, type EffectClip } from '../assets/animation';
-import { CAST_COOLDOWN_MS, DemoDuel, demoSpell, type Attack, type Side, type Spell } from './demo-duel';
+import { CAST_COOLDOWN_MS, DemoDuel, demoSpell, spellName, type Attack, type Side, type Spell } from './demo-duel';
 import type { SpellCastPayload } from '../spells/spell-resolver';
 import { spellAudio } from '../audio/spell-audio';
 import { opponentSoundDelayMs } from '../audio/sound-timing';
@@ -43,7 +43,7 @@ export function mountDuel(root: HTMLElement, music: BackgroundMusic): { setParti
         element.textContent = model.name(side);
       });
     }
-    canvas.setAttribute('aria-label', `${model.name(0)} and ${model.name(1)} casting spells in the arena`);
+    canvas.setAttribute('aria-label', `${model.name(0)} и ${model.name(1)} применяют заклинания на арене`);
   };
   const announce = () => {
     music.setActive(Boolean(manifest) && !paused && model.winner === undefined && visible());
@@ -55,8 +55,8 @@ export function mountDuel(root: HTMLElement, music: BackgroundMusic): { setParti
     const ready = Math.min(CAST_COOLDOWN_MS, Math.max(0, clock - model.fighters[0].castAt));
     readiness.value = ready;
     const incoming = model.attacks.find((attack) => attack.side === 1 && attack.impactAt > clock);
-    const label = model.winner !== undefined ? 'Duel finished' : paused ? 'Paused'
-      : incoming && model.canCast(0, 'shield', clock) ? 'Shield ready' : ready === CAST_COOLDOWN_MS ? 'Ready' : 'Recovering…';
+    const label = model.winner !== undefined ? 'Дуэль завершена' : paused ? 'Пауза'
+      : incoming && model.canCast(0, 'shield', clock) ? 'Щит готов' : ready === CAST_COOLDOWN_MS ? 'Готово' : 'Восстановление…';
     if (readyLabel.textContent !== label) readyLabel.textContent = label;
     buttons.forEach((button) => {
       button.disabled = !manifest || (button.hasAttribute('data-spell') &&
@@ -69,19 +69,19 @@ export function mountDuel(root: HTMLElement, music: BackgroundMusic): { setParti
       else delete threat.dataset.spell;
       threat.classList.toggle('is-incoming', !charging);
       threatRune.textContent = incoming.revealed ? incoming.spell === 'fireball' ? '△' : 'ϟ' : '?';
-      threatLabel.textContent = incoming.revealed ? `${model.name(1)}: ${incoming.spell}` : `${model.name(1)} is casting`;
-      threatPhase.textContent = charging ? 'Charging — draw a circle to shield!' : 'Incoming — shield now!';
+      threatLabel.textContent = incoming.revealed ? `${model.name(1)}: ${spellName(incoming.spell)}` : `${model.name(1)} готовит заклинание`;
+      threatPhase.textContent = charging ? 'Зарядка — нарисуйте круг для щита!' : 'Атака близко — ставьте щит!';
       threatProgress.max = incoming.releaseAt - incoming.startedAt;
       threatProgress.value = charging ? Math.min(threatProgress.max, clock - incoming.startedAt) : threatProgress.max;
     }
     pauseButton.disabled = !manifest || model.winner !== undefined;
-    pauseButton.textContent = paused ? 'Resume' : 'Pause';
+    pauseButton.textContent = paused ? 'Продолжить' : 'Пауза';
     pauseButton.setAttribute('aria-pressed', String(paused));
     overlay.hidden = !paused && model.winner === undefined;
     root.querySelector<HTMLElement>('[data-overlay-title]')!.textContent = model.winner !== undefined
-      ? `${model.name(model.winner)} wins` : 'Duel paused';
+      ? `${model.name(model.winner)} побеждает` : 'Дуэль на паузе';
     root.querySelector<HTMLElement>('[data-overlay-detail]')!.textContent = model.winner !== undefined
-      ? 'Choose Restart duel to practice again.' : 'Choose Resume when you are ready.';
+      ? 'Нажмите «Начать заново», чтобы сыграть ещё раз.' : 'Нажмите «Продолжить», когда будете готовы.';
   };
   const cast = (side: Side, spell: Spell) => {
     if (!manifest || !visible() || paused) return;
@@ -96,7 +96,7 @@ export function mountDuel(root: HTMLElement, music: BackgroundMusic): { setParti
         if (enemyAttack) nextEnemyCastAt = enemyAttack.impactAt + 3200;
         else if (side === 1) nextEnemyCastAt = clock + 3200;
       }
-    } else if (model.winner === undefined) model.message = 'Finish the current cast before casting again.';
+    } else if (model.winner === undefined) model.message = 'Завершите текущее заклинание, прежде чем начать новое.';
     announce();
   };
   buttons.forEach((button) => {
@@ -219,13 +219,13 @@ export function mountDuel(root: HTMLElement, music: BackgroundMusic): { setParti
   };
   void (async () => {
     const response = await fetch(`${base}manifest.json`, { signal: AbortSignal.any([abort.signal, AbortSignal.timeout(15000)]) });
-    if (!response.ok) throw new Error('Could not load duel assets. Run npm run assets:extract and reload.');
+    if (!response.ok) throw new Error('Не удалось загрузить ресурсы дуэли. Выполните npm run assets:extract и перезагрузите страницу.');
     const loaded: AssetManifest = await response.json();
-    if (loaded.version !== 1 || !loaded.effects?.length) throw new Error('Duel assets need regeneration. Run npm run assets:extract.');
+    if (loaded.version !== 1 || !loaded.effects?.length) throw new Error('Ресурсы дуэли нужно создать заново. Выполните npm run assets:extract.');
     await Promise.all([loaded.arena, ...loaded.clips.flatMap((clip) => clip.frames.map((frame) => frame.path)), ...loaded.effects.flatMap((clip) => clip.frames.map((frame) => frame.path))].map(async (path) => {
       const image = new Image(); image.src = base + path;
       await new Promise<void>((resolve, reject) => {
-        const timer = window.setTimeout(() => reject(new Error(`Image loading timed out: ${path}`)), 15000);
+        const timer = window.setTimeout(() => reject(new Error(`Превышено время загрузки изображения: ${path}`)), 15000);
         image.decode().then(() => { clearTimeout(timer); resolve(); }, (error: unknown) => { clearTimeout(timer); reject(error); });
       });
       images.set(path, image);
@@ -234,7 +234,7 @@ export function mountDuel(root: HTMLElement, music: BackgroundMusic): { setParti
     manifest = loaded; announce(); draw(); previous = performance.now(); frameId = requestAnimationFrame(tick);
   })().catch(() => {
     if (!disposed) {
-      status.textContent = 'The arena is temporarily unavailable.';
+      status.textContent = 'Арена временно недоступна.';
       root.querySelector<HTMLElement>('[data-load-error]')!.hidden = false;
     }
   });

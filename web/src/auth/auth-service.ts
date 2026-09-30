@@ -1,3 +1,5 @@
+import { serverError } from '../ui/server-error';
+
 export interface AuthCredentials {
   login: string;
   password: string;
@@ -21,7 +23,7 @@ export interface AuthService {
 }
 
 export class InvalidCredentialsError extends Error {
-  constructor(message = 'The login or password is incorrect.') {
+  constructor(message = 'Неверный логин или пароль.') {
     super(message);
     this.name = 'InvalidCredentialsError';
   }
@@ -84,7 +86,7 @@ function apiBaseUrl(): string {
 
 function errorMessage(body: unknown, fallback: string): string {
   if (typeof body === 'object' && body !== null && 'detail' in body && typeof body.detail === 'string') {
-    return body.detail;
+    return serverError(body.detail, fallback);
   }
   return fallback;
 }
@@ -178,7 +180,7 @@ export class ApiAuthService implements AuthService {
     } catch {
       throw new AuthRequestError(
         0,
-        `Cannot reach the authentication server at ${this.baseUrl}. Check the backend and browser CORS settings.`,
+        `Не удалось подключиться к серверу входа по адресу ${this.baseUrl}. Проверьте сервер и настройки CORS.`,
       );
     }
 
@@ -186,8 +188,8 @@ export class ApiAuthService implements AuthService {
     const parsed = parseAuthResponse(body);
     if (!response.ok || !parsed) {
       const message = errorMessage(body, response.ok
-        ? 'The authentication server returned an invalid response.'
-        : `Authentication request failed (HTTP ${response.status}).`);
+        ? 'Сервер входа вернул некорректный ответ.'
+        : `Запрос авторизации завершился ошибкой (HTTP ${response.status}).`);
       if (response.status === 401) throw new InvalidCredentialsError(message);
       throw new AuthRequestError(response.status, message);
     }

@@ -115,8 +115,8 @@ describe('credential validation', () => {
       password: 'short',
       keepSignedIn: false,
     })).toEqual({
-      login: 'Use 3-64 lowercase letters, numbers, dots, dashes, or underscores.',
-      password: 'Password must contain at least 8 characters.',
+      login: 'Используйте от 3 до 64 строчных латинских букв, цифр, точек, дефисов или подчёркиваний.',
+      password: 'Пароль должен содержать не меньше 8 символов.',
     });
   });
 });

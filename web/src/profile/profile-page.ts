@@ -1,6 +1,7 @@
 import '../style.css';
 import './profile.css';
 import { ApiAuthService } from '../auth/auth-service';
+import { serverError } from '../ui/server-error';
 
 interface Profile {
   id: string;
@@ -26,7 +27,7 @@ function render(data: Profile): void {
   document.querySelectorAll<HTMLElement>('[data-login]').forEach((element) => { element.textContent = data.login; });
   const date = new Date(data.createdAt);
   const joined = document.querySelector<HTMLTimeElement>('[data-joined]')!;
-  joined.textContent = Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(date);
+  joined.textContent = Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric' }).format(date);
   joined.dateTime = Number.isNaN(date.getTime()) ? '' : date.toISOString();
   for (const key of ['played', 'won', 'lost', 'drawn'] as const) {
     document.querySelector<HTMLElement>(`[data-stat="${key}"]`)!.textContent = String(data.online[key]);
@@ -39,14 +40,14 @@ function render(data: Profile): void {
 void auth.restoreSession().then(async (user) => {
   if (!user) { window.location.replace(import.meta.env.BASE_URL); return; }
   const token = auth.accessToken();
-  if (!token) throw new Error('Sign in again to view your profile.');
+  if (!token) throw new Error('Войдите снова, чтобы открыть профиль.');
   const response = await fetch(`${auth.apiBaseUrl()}/api/profile`, { headers: { Authorization: `Bearer ${token}` } });
-  if (!response.ok) throw new Error(`Profile unavailable (HTTP ${response.status}).`);
+  if (!response.ok) throw new Error(`Профиль недоступен (HTTP ${response.status}).`);
   render(await response.json() as Profile);
   screen.hidden = false;
   loading.hidden = true;
 }).catch((error: unknown) => {
-  loading.textContent = error instanceof Error ? error.message : 'Profile unavailable. Return to sign in and try again.';
+  loading.textContent = error instanceof Error ? error.message : 'Профиль недоступен. Войдите снова и попробуйте ещё раз.';
 });
 
 form.addEventListener('submit', async (event) => {
@@ -54,15 +55,15 @@ form.addEventListener('submit', async (event) => {
   if (!profile) return;
   const name = input.value.trim().replace(/\s+/g, ' ');
   if (name.length < 2 || name.length > 32) {
-    status.textContent = 'Use a display name between 2 and 32 characters.';
+    status.textContent = 'Имя должно содержать от 2 до 32 символов.';
     input.focus();
     return;
   }
-  if (name === profile.displayName) { status.textContent = 'Your name is already up to date.'; return; }
+  if (name === profile.displayName) { status.textContent = 'Имя уже сохранено.'; return; }
   const token = auth.accessToken();
-  if (!token) { status.textContent = 'Your session expired. Sign in again.'; return; }
+  if (!token) { status.textContent = 'Сеанс истёк. Войдите снова.'; return; }
   saveButton.disabled = true;
-  status.textContent = 'Saving your name…';
+  status.textContent = 'Сохраняем имя…';
   try {
     const response = await fetch(`${auth.apiBaseUrl()}/api/profile`, {
       method: 'PATCH',
@@ -70,12 +71,12 @@ form.addEventListener('submit', async (event) => {
       body: JSON.stringify({ displayName: name }),
     });
     const body = await response.json() as Profile & { detail?: string };
-    if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : 'Could not save your name.');
+    if (!response.ok) throw new Error(serverError(body.detail, 'Не удалось сохранить имя.'));
     render(body);
     await auth.restoreSession();
-    status.textContent = 'Name saved. New duels will show your updated name.';
+    status.textContent = 'Имя сохранено. В новых дуэлях будет показано новое имя.';
   } catch (error) {
-    status.textContent = error instanceof Error ? error.message : 'Could not save your name.';
+    status.textContent = error instanceof Error ? error.message : 'Не удалось сохранить имя.';
   } finally {
     saveButton.disabled = false;
   }

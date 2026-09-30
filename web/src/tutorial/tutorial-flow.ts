@@ -12,13 +12,13 @@ export interface Lesson {
 }
 
 export const LESSONS: readonly Lesson[] = [
-  { spell: 'Spark', shape: 'line', glyph: '━', title: 'Start with a spark', instruction: 'Draw one long, straight line. With a camera, point one index finger to trace it, then open your palm.', tip: 'A short stroke will not cast. Make the line broad and steady.', effect: 'Fast, light attack · 7 damage' },
-  { spell: 'Fireball', shape: 'triangle', glyph: '△', title: 'Focus a fireball', instruction: 'Draw a triangle and come back near its starting point.', tip: 'Make all three sides visible; close the outline at the end.', effect: 'Traveling attack · 20 damage' },
-  { spell: 'Shield', shape: 'circle', glyph: '○', title: 'Raise your shield', instruction: 'Draw a round, closed circle. You will use this rune against incoming attacks.', tip: 'Keep the loop round and reconnect its ends.', effect: 'Blocks the next incoming hit' },
-  { spell: 'Lightning', shape: 'zigzag', glyph: 'ϟ', title: 'Strike with lightning', instruction: 'Draw an open zigzag with alternating sharp turns.', tip: 'Leave the ends apart. Do not close the lightning shape.', effect: 'Quick strike · 15 damage' },
-  { spell: 'Time Lock', shape: 'square', glyph: '□', title: 'Slow the next attack', instruction: 'Draw four sides of a square or rectangle and close it.', tip: 'Give the rune four clear corners and connect the last side.', effect: 'Delays an opponent attack by 1.5 seconds' },
-  { spell: 'Twin Flare', shape: 'hourglass', glyph: '⧖', title: 'Master Twin Flare', instruction: 'In one stroke, start in the center, draw the top triangle, then the bottom triangle, and finish at the center.', tip: 'Draw both triangles without lifting or opening your palm between them.', effect: 'Slow, powerful attack · 45 damage' },
-  { spell: 'Shield', shape: 'circle', glyph: '○', title: 'React to the warning', instruction: 'When the enemy fireball appears, cast Shield before the three-second charge ends.', tip: 'Watch the triangle warning, draw a circle, and release your palm quickly.', effect: 'Defense drill · block a telegraphed fireball', timed: true },
+  { spell: 'Искра', shape: 'line', glyph: '━', title: 'Начните с искры', instruction: 'Нарисуйте длинную прямую линию. Перед камерой ведите указательным пальцем, затем раскройте ладонь.', tip: 'Короткая линия не сработает. Рисуйте плавно и достаточно крупно.', effect: 'Быстрая атака · 7 урона' },
+  { spell: 'Огненный шар', shape: 'triangle', glyph: '△', title: 'Создайте огненный шар', instruction: 'Нарисуйте треугольник и вернитесь к началу.', tip: 'Покажите все три стороны и замкните контур.', effect: 'Атака · 20 урона' },
+  { spell: 'Щит', shape: 'circle', glyph: '○', title: 'Поднимите щит', instruction: 'Нарисуйте ровный замкнутый круг. Он защитит от атаки.', tip: 'Сделайте круг ровным и соедините его концы.', effect: 'Блокирует следующий удар' },
+  { spell: 'Молния', shape: 'zigzag', glyph: 'ϟ', title: 'Ударьте молнией', instruction: 'Нарисуйте незамкнутый зигзаг с чёткими поворотами.', tip: 'Оставьте концы раздельно. Не замыкайте зигзаг.', effect: 'Быстрый удар · 15 урона' },
+  { spell: 'Остановка времени', shape: 'square', glyph: '□', title: 'Замедлите следующую атаку', instruction: 'Нарисуйте четыре стороны квадрата или прямоугольника и замкните фигуру.', tip: 'Сделайте четыре чётких угла и соедините последнюю сторону с первой.', effect: 'Задерживает атаку соперника на 1,5 секунды' },
+  { spell: 'Двойное пламя', shape: 'hourglass', glyph: '⧖', title: 'Освойте двойное пламя', instruction: 'Одним движением начните в центре, нарисуйте верхний и нижний треугольники и вернитесь в центр.', tip: 'Нарисуйте оба треугольника без остановки и не раскрывайте ладонь между ними.', effect: 'Мощная атака · 45 урона' },
+  { spell: 'Щит', shape: 'circle', glyph: '○', title: 'Отреагируйте на угрозу', instruction: 'Когда появится огненный шар соперника, создайте щит до конца трёхсекундной зарядки.', tip: 'Следите за предупреждением, быстро нарисуйте круг и раскройте ладонь.', effect: 'Защитное испытание · блокировка огненного шара', timed: true },
 ];
 
 export interface LessonFeedback { kind: 'success' | 'hint' | 'error'; message: string; }
@@ -27,7 +27,7 @@ export class TutorialFlow {
   index = 0;
   passed = false;
   threatEndsAt: number | undefined;
-  feedback: LessonFeedback = { kind: 'hint', message: 'Choose a drawing method, then cast the shown rune.' };
+  feedback: LessonFeedback = { kind: 'hint', message: 'Выберите способ рисования и нарисуйте показанную руну.' };
 
   get lesson(): Lesson { return LESSONS[this.index]; }
   get complete(): boolean { return this.index === LESSONS.length - 1 && this.passed; }
@@ -35,13 +35,13 @@ export class TutorialFlow {
   startThreat(now: number): void {
     if (!this.lesson.timed || this.passed) return;
     this.threatEndsAt = now + 3000;
-    this.feedback = { kind: 'hint', message: 'Incoming fireball! Draw a circle and release before impact.' };
+    this.feedback = { kind: 'hint', message: 'Приближается огненный шар! Нарисуйте круг и раскройте ладонь до удара.' };
   }
 
   tick(now: number): boolean {
     if (this.threatEndsAt === undefined || this.passed || now < this.threatEndsAt) return false;
     this.threatEndsAt = undefined;
-    this.feedback = { kind: 'error', message: 'The fireball landed. Start the warning again, then cast Shield sooner.' };
+    this.feedback = { kind: 'error', message: 'Огненный шар попал в цель. Запустите атаку снова и создайте щит быстрее.' };
     return true;
   }
 
@@ -52,18 +52,18 @@ export class TutorialFlow {
       return this.feedback;
     }
     if (this.lesson.timed && this.threatEndsAt === undefined) {
-      return this.feedback = { kind: 'hint', message: 'Start the incoming attack before casting your Shield.' };
+      return this.feedback = { kind: 'hint', message: 'Запустите атаку противника, прежде чем создавать щит.' };
     }
     if (evaluation.status === 'matched') {
       if (evaluation.templateId === this.lesson.shape) {
         this.passed = true;
         this.threatEndsAt = undefined;
-        return this.feedback = { kind: 'success', message: this.complete ? 'Perfect block! You are ready to duel.' : `${this.lesson.spell} cast! Read the next lesson when you are ready.` };
+        return this.feedback = { kind: 'success', message: this.complete ? 'Идеальный блок! Вы готовы к дуэли.' : `${this.lesson.spell} применено! Переходите к следующему уроку, когда будете готовы.` };
       }
-      const spell = LESSONS.find((lesson) => lesson.shape === evaluation.templateId)?.spell ?? 'another spell';
-      return this.feedback = { kind: 'hint', message: `That was ${spell}. This lesson needs ${this.lesson.spell}: ${this.lesson.tip}` };
+      const spell = LESSONS.find((lesson) => lesson.shape === evaluation.templateId)?.spell ?? 'другое заклинание';
+      return this.feedback = { kind: 'hint', message: `Это было заклинание ${spell}. В этом уроке нужна руна ${this.lesson.spell}: ${this.lesson.tip}` };
     }
-    const correction = evaluation.correction && evaluation.correction !== 'No supported shape matched'
+    const correction = evaluation.correction && evaluation.correction !== 'Ни одна руна не распознана'
       ? `${evaluation.correction}. ` : '';
     return this.feedback = { kind: 'hint', message: `${correction}${this.lesson.tip}` };
   }
@@ -73,7 +73,7 @@ export class TutorialFlow {
     this.index += 1;
     this.passed = false;
     this.threatEndsAt = undefined;
-    this.feedback = { kind: 'hint', message: this.lesson.timed ? 'Read the warning, then start the defense drill.' : `Now try ${this.lesson.spell}.` };
+    this.feedback = { kind: 'hint', message: this.lesson.timed ? 'Прочитайте предупреждение и начните защитное испытание.' : `Теперь попробуйте ${this.lesson.spell}.` };
     return true;
   }
 }

@@ -6,7 +6,7 @@ describe('local practice duel', () => {
     const duel = new DemoDuel(() => 1);
     duel.setParticipants('mage_42');
     expect(duel.name(0)).toBe('mage_42');
-    expect(duel.name(1)).toBe('Computer (AI)');
+    expect(duel.name(1)).toBe('Компьютер');
     duel.cast(0, 'shield', 0);
     expect(duel.message).toContain('mage_42');
     duel.setParticipants('mage_42', 'rival_7');
@@ -44,9 +44,9 @@ describe('local practice duel', () => {
     expect(duel.cast(1, spell, 1000)).toBe(false);
     duel.update(attack.releaseAt - 1);
     expect(duel.fighters[0].health).toBe(100);
-    expect(duel.message).toContain('charging');
+    expect(duel.message).toContain('заряжает');
     duel.update(attack.releaseAt);
-    expect(duel.message).toContain('released');
+    expect(duel.message).toContain('выпускает');
     expect(duel.cast(0, 'shield', attack.releaseAt + 100)).toBe(true);
     duel.update(attack.impactAt);
     expect(duel.fighters[0].health).toBe(100);
@@ -135,17 +135,17 @@ describe('local practice duel', () => {
     const duel = new DemoDuel(() => 1);
     duel.cast(1, 'fireball', 0);
     expect(duel.attacks[0].revealed).toBe(false);
-    expect(duel.message).not.toContain('fireball');
+    expect(duel.message).not.toContain('Огненный шар');
     duel.update(ENEMY_WINDUP_MS);
-    expect(duel.message).not.toContain('fireball');
+    expect(duel.message).not.toContain('Огненный шар');
 
     const next = new DemoDuel(() => 1);
     next.cast(1, 'lightning', 0);
     next.cast(0, 'time-lock', 100);
     expect(next.attacks[0].revealed).toBe(true);
-    expect(next.message).toContain('lightning');
+    expect(next.message).toContain('Молния');
     next.update(next.attacks[0].releaseAt);
-    expect(next.message).toContain('lightning');
+    expect(next.message).toContain('Молния');
 
     const queued = new DemoDuel(() => 1);
     queued.cast(0, 'time-lock', 0);
@@ -169,7 +169,7 @@ describe('local practice duel', () => {
     expect(duel.cast(1, 'fireball', 1000)).toBe(true);
     expect(duel.attacks).toHaveLength(0);
     expect(duel.lastEnemyMiscastAt).toBe(1000);
-    expect(duel.message).toContain('fizzles');
+    expect(duel.message).toContain('Атака исчезает');
     expect(duel.fighters[1].slowNextAttack).toBe(true);
     expect(duel.canCast(1, 'lightning', 1500)).toBe(false);
     expect(duel.cast(1, 'lightning', 2000)).toBe(true);

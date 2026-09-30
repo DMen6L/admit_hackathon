@@ -242,7 +242,7 @@ describe('shape evaluator', () => {
 
     expect(evaluation.status).toBe('near-miss');
     expect(evaluation.diagnostics.directionError).toBeGreaterThan(0.35);
-    expect(evaluation.correction).toContain('direction');
+    expect(evaluation.correction).toContain('направлении');
   });
 
   it('does not treat a closed loop as an open lightning gesture', () => {

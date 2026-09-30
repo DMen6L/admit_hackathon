@@ -68,10 +68,10 @@ function render(): void {
   music.setActive(!flow.complete);
   const lesson = flow.lesson;
   const number = flow.index + 1;
-  get<HTMLElement>('#lesson-number').textContent = `Lesson ${number} of ${LESSONS.length}`;
+  get<HTMLElement>('#lesson-number').textContent = `Урок ${number} из ${LESSONS.length}`;
   get<HTMLProgressElement>('#lesson-progress').value = number;
-  get<HTMLElement>('#lesson-progress-label').textContent = `${flow.index + (flow.passed ? 1 : 0)} completed`;
-  get<HTMLElement>('#lesson-kicker').textContent = `${String(number).padStart(2, '0')} / ${lesson.timed ? 'Final trial' : 'Rune practice'}`;
+  get<HTMLElement>('#lesson-progress-label').textContent = `${flow.index + (flow.passed ? 1 : 0)} пройдено`;
+  get<HTMLElement>('#lesson-kicker').textContent = `${String(number).padStart(2, '0')} / ${lesson.timed ? 'Финальное испытание' : 'Практика рун'}`;
   get<HTMLElement>('#lesson-glyph').textContent = lesson.glyph;
   get<HTMLElement>('#lesson-title').textContent = lesson.title;
   get<HTMLElement>('#lesson-instruction').textContent = lesson.instruction;
@@ -81,10 +81,10 @@ function render(): void {
   scene.dataset.result = flow.passed ? 'success' : 'idle';
   scene.dataset.threat = flow.threatEndsAt !== undefined ? 'active' : 'idle';
   get<HTMLElement>('#scene-rune').textContent = lesson.glyph;
-  get<HTMLElement>('#scene-caption').textContent = flow.complete ? 'Shield raised. The fireball was blocked.'
-    : flow.passed ? `${lesson.spell} landed. Your training opponent is ready for the next lesson.`
-      : lesson.timed ? 'The rival will charge a fireball. Raise a Shield before it lands.'
-        : `Cast ${lesson.spell} to practice its effect in the arena.`;
+  get<HTMLElement>('#scene-caption').textContent = flow.complete ? 'Щит поднят. Огненный шар заблокирован.'
+    : flow.passed ? `${lesson.spell} попал в цель. Соперник готов к следующему уроку.`
+      : lesson.timed ? 'Соперник готовит огненный шар. Создайте щит до удара.'
+        : `Создайте заклинание «${lesson.spell}», чтобы увидеть его действие на арене.`;
   feedback.textContent = flow.feedback.message;
   feedback.dataset.kind = flow.feedback.kind;
   get<HTMLButtonElement>('#continue-lesson').hidden = !flow.passed || flow.complete;
@@ -128,7 +128,7 @@ pad.addEventListener('pointerup', (event) => {
   if (event.pointerId !== pointerId) return;
   pointerPoints.push(pointFor(event));
   pointerId = undefined;
-  submitStroke({ key: 'pointer', label: 'Pointer', points: pointerPoints, aspectRatio: pad.clientWidth / pad.clientHeight });
+  submitStroke({ key: 'pointer', label: 'Указатель', points: pointerPoints, aspectRatio: pad.clientWidth / pad.clientHeight });
 });
 pad.addEventListener('pointercancel', () => { pointerId = undefined; pointerPoints = []; padContext.clearRect(0, 0, pad.width, pad.height); });
 
@@ -156,7 +156,7 @@ get<HTMLButtonElement>('#start-threat').addEventListener('click', () => {
   updateThreat();
 });
 
-function stopCamera(message = 'Camera stopped. You can keep drawing with a mouse or touch.'): void {
+function stopCamera(message = 'Камера выключена. Можно продолжить рисовать мышью или касанием.'): void {
   cameraSession += 1;
   cancelAnimationFrame(cameraFrame);
   stream?.getTracks().forEach((track) => track.stop());
@@ -188,42 +188,42 @@ function trackFrame(session: number): void {
       for (const stroke of completed) submitStroke(stroke);
       const pending = hands.hands.find((hand) => hand.phase === 'awaiting-release');
       const pointing = hands.hands.find((hand) => hand.indexRaised);
-      cameraStatus.textContent = pending?.releaseCorrection ?? (pending ? 'Open your palm to release.'
-        : hands.castingHands ? 'Drawing your rune…' : pointing?.correction ?? (results.landmarks.length ? 'Point one index finger to draw.' : 'Hold one hand in view.'));
+      cameraStatus.textContent = pending?.releaseCorrection ?? (pending ? 'Раскройте ладонь для применения заклинания.'
+        : hands.castingHands ? 'Рисуем руну…' : pointing?.correction ?? (results.landmarks.length ? 'Вытяните указательный палец, чтобы рисовать.' : 'Держите руку в кадре.'));
     }
     cameraFrame = requestAnimationFrame(() => trackFrame(session));
   } catch {
-    stopCamera('Hand tracking stopped. Try starting the camera again, or use mouse/touch.');
+    stopCamera('Отслеживание остановилось. Включите камеру снова или рисуйте мышью.');
   }
 }
 
 cameraStart.addEventListener('click', async () => {
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-    cameraStatus.textContent = 'Camera needs localhost or HTTPS. Mouse/touch drawing still works.';
+    cameraStatus.textContent = 'Для камеры нужен localhost или HTTPS. Мышью и касанием можно рисовать без камеры.';
     return;
   }
   const session = ++cameraSession;
   cameraStart.disabled = true;
   cameraStop.disabled = false;
-  cameraStatus.textContent = 'Requesting camera…';
+  cameraStatus.textContent = 'Запрашиваем доступ к камере…';
   try {
     const acquired = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } });
     if (session !== cameraSession) { acquired.getTracks().forEach((track) => track.stop()); return; }
     stream = acquired;
-    acquired.getVideoTracks()[0]?.addEventListener('ended', () => { if (session === cameraSession) stopCamera('Camera disconnected.'); }, { once: true });
+    acquired.getVideoTracks()[0]?.addEventListener('ended', () => { if (session === cameraSession) stopCamera('Камера отключилась.'); }, { once: true });
     video.srcObject = acquired;
     await video.play();
     if (session !== cameraSession) return;
     get<HTMLElement>('#tutorial-camera-preview').hidden = false;
-    cameraStatus.textContent = 'Loading hand tracking…';
+    cameraStatus.textContent = 'Загружаем распознавание руки…';
     tracker ??= await createHandTracker();
     if (session !== cameraSession) return;
-    cameraStatus.textContent = 'Point one index finger to draw.';
+    cameraStatus.textContent = 'Вытяните указательный палец, чтобы рисовать.';
     trackFrame(session);
   } catch (error) {
     if (session === cameraSession) stopCamera(isHandTrackerAssetError(error)
-      ? 'Hand-tracking files are missing from this deployment. Rebuild the frontend, or use mouse/touch.'
-      : 'Camera could not start. Check permission, or use mouse/touch.');
+      ? 'На сайте отсутствуют файлы распознавания руки. Повторите сборку или рисуйте мышью.'
+      : 'Не удалось включить камеру. Проверьте разрешения или рисуйте мышью.');
   }
 });
 cameraStop.addEventListener('click', () => stopCamera());
@@ -236,4 +236,4 @@ void auth.restoreSession().then((user) => {
   get<HTMLElement>('#lesson-title').tabIndex = -1;
   fitCanvas(pad);
   render();
-}).catch(() => { get<HTMLElement>('#tutorial-session').textContent = 'Could not open the tutorial. Return to sign in and try again.'; });
+}).catch(() => { get<HTMLElement>('#tutorial-session').textContent = 'Не удалось открыть обучение. Войдите снова и попробуйте ещё раз.'; });
