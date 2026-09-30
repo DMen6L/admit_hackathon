@@ -1,10 +1,12 @@
 import { sampleAnimation, type AssetManifest, type EffectClip } from '../assets/animation';
-import { CAST_COOLDOWN_MS, DemoDuel, demoSpell, type Side, type Spell } from './demo-duel';
+import { CAST_COOLDOWN_MS, DemoDuel, demoSpell, type Attack, type Side, type Spell } from './demo-duel';
 import type { SpellCastPayload } from '../spells/spell-resolver';
 import { spellAudio } from '../audio/spell-audio';
+import { opponentSoundDelayMs } from '../audio/sound-timing';
+import type { BackgroundMusic } from '../audio/background-music';
 import './duel.css';
 
-export function mountDuel(root: HTMLElement): { setParticipants(playerName: string, opponentName?: string): void; reset(): void; dispose(): void } {
+export function mountDuel(root: HTMLElement, music: BackgroundMusic): { setParticipants(playerName: string, opponentName?: string): void; reset(): void; dispose(): void } {
   const model = new DemoDuel();
   const abort = new AbortController();
   const base = `${import.meta.env.BASE_URL}assets/game/`;
@@ -22,6 +24,9 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
   let paused = false;
   let nextEnemyCastAt = 3500;
   let enemyCastIndex = 0;
+  let ownAttackReleaseAt = -Infinity;
+  const playedAttackReleases = new WeakSet<Attack>();
+  const warnedEnemyAttacks = new WeakSet<Attack>();
   const pauseButton = root.querySelector<HTMLButtonElement>('[data-pause]')!;
   const readiness = root.querySelector<HTMLProgressElement>('[data-readiness]')!;
   const readyLabel = root.querySelector<HTMLElement>('[data-ready-label]')!;
@@ -41,6 +46,7 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
     canvas.setAttribute('aria-label', `${model.name(0)} and ${model.name(1)} casting spells in the arena`);
   };
   const announce = () => {
+    music.setActive(Boolean(manifest) && !paused && model.winner === undefined && visible());
     if (status.textContent !== model.message) status.textContent = model.message;
     model.fighters.forEach((fighter, index) => {
       root.querySelector<HTMLProgressElement>(`[data-health="${index}"]`)!.value = fighter.health;
@@ -56,7 +62,7 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
       button.disabled = !manifest || (button.hasAttribute('data-spell') &&
         (paused || !model.canCast(0, button.dataset.spell as Spell, clock)));
     });
-    threat.hidden = !incoming;
+    threat.hidden = !incoming || clock >= incoming.releaseAt;
     if (incoming) {
       const charging = clock < incoming.releaseAt;
       if (incoming.revealed) threat.dataset.spell = incoming.spell;
@@ -83,7 +89,8 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
     const eventFrame = clip.events.find((event) => event.name === 'projectile-release')!.frame;
     const delay = clip.frames.slice(0, eventFrame).reduce((sum, frame) => sum + frame.durationMs, 0);
     if (model.cast(side, spell, clock, delay)) {
-      if (side === 0 || model.lastEnemyMiscastAt !== clock) spellAudio.play(spell);
+      if (side === 0) ownAttackReleaseAt = model.attacks.find((attack) => attack.side === 0 && attack.startedAt === clock)?.releaseAt ?? -Infinity;
+      if (spell === 'shield' || spell === 'time-lock') spellAudio.play(spell);
       if (side === 1 || spell === 'time-lock') {
         const enemyAttack = model.attacks.find((attack) => attack.side === 1);
         if (enemyAttack) nextEnemyCastAt = enemyAttack.impactAt + 3200;
@@ -95,7 +102,7 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
   buttons.forEach((button) => {
     button.disabled = true;
     button.addEventListener('click', () => {
-      if (button.hasAttribute('data-reset')) { model.reset(); clock = 0; nextEnemyCastAt = 3500; enemyCastIndex = 0; paused = false; announce(); }
+      if (button.hasAttribute('data-reset')) { model.reset(); clock = 0; nextEnemyCastAt = 3500; enemyCastIndex = 0; ownAttackReleaseAt = -Infinity; paused = false; announce(); }
       else if (button.hasAttribute('data-pause')) { paused = !paused; announce(); }
       else if (button.dataset.spell) cast(0, button.dataset.spell as Spell);
     }, { signal: abort.signal });
@@ -124,7 +131,8 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
       const enemyAttack = side === 1 ? model.attacks.find((attack) => attack.side === 1 && attack.releaseAt > clock) : undefined;
       const castDuration = castClip.frames.reduce((sum, frame) => sum + frame.durationMs, 0);
       const age = enemyAttack ? clock - (enemyAttack.releaseAt - castDuration) : clock - fighter.castAt;
-      const clip = age >= 0 && !sampleAnimation(castClip, age).finished && Number.isFinite(age)
+      const released = side === 0 && ownAttackReleaseAt > -Infinity && clock >= ownAttackReleaseAt;
+      const clip = !released && age >= 0 && !sampleAnimation(castClip, age).finished && Number.isFinite(age)
         ? castClip : manifest!.clips.find((value) => value.character === character && value.state === 'idle')!;
       const sample = sampleAnimation(clip, clip.state === 'idle' ? clock : age);
       const x = side === 0 ? 320 : 1140;
@@ -142,6 +150,7 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
     }
     const chargingAttack = model.attacks.find((attack) => attack.side === 1 && clock < attack.releaseAt);
     if (chargingAttack) {
+      warnedEnemyAttacks.add(chargingAttack);
       const charge = (clock - chargingAttack.startedAt) / (chargingAttack.releaseAt - chargingAttack.startedAt);
       const color = !chargingAttack.revealed ? '#b9c8df'
         : chargingAttack.spell === 'fireball' ? '#ffba74' : '#d6baff';
@@ -179,6 +188,12 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
       const effectId = attack.spell === 'twin-flare' ? 'fireball' : attack.spell === 'spark' ? 'lightning' : attack.spell;
       const scale = attack.spell === 'twin-flare' ? 5 : attack.spell === 'spark' ? 2 : 3;
       effect(effectId, clock - attack.releaseAt, x, 330, attack.side === 1, scale);
+      if (!paused && clock > attack.releaseAt && !playedAttackReleases.has(attack)) {
+        if (attack.side === 1 && !warnedEnemyAttacks.has(attack)) { playedAttackReleases.add(attack); continue; }
+        if (attack.side === 1 && clock < attack.releaseAt + opponentSoundDelayMs(attack.releaseAt, attack.impactAt)) continue;
+        playedAttackReleases.add(attack);
+        spellAudio.play(attack.spell, attack.impactAt - clock);
+      }
     }
     for (const impact of model.impacts) {
       // The board contains no distinct impact burst: use an explicit procedural ring.
@@ -225,7 +240,7 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
   });
   return {
     setParticipants(playerName, opponentName) { model.setParticipants(playerName, opponentName); renderParticipants(); announce(); },
-    reset() { model.reset(); clock = 0; nextEnemyCastAt = 3500; enemyCastIndex = 0; paused = false; announce(); },
-    dispose() { disposed = true; abort.abort(); cancelAnimationFrame(frameId); },
+    reset() { model.reset(); clock = 0; nextEnemyCastAt = 3500; enemyCastIndex = 0; ownAttackReleaseAt = -Infinity; paused = false; announce(); },
+    dispose() { disposed = true; music.setActive(false); abort.abort(); cancelAnimationFrame(frameId); },
   };
 }

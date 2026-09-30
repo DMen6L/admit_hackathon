@@ -2,15 +2,26 @@ import { sampleAnimation, type AssetManifest, type EffectClip } from '../assets/
 import type { ApiAuthService } from '../auth/auth-service';
 import type { SpellCastPayload } from '../spells/spell-resolver';
 import { RoomClient } from './room-client';
-import type { MatchState } from './protocol';
+import { ONLINE_SPELL_IDS, type MatchState, type OnlineSpellId } from './protocol';
 import { spellAudio } from '../audio/spell-audio';
-import { confirmedSpellSounds } from '../audio/online-sounds';
+import type { BackgroundMusic } from '../audio/background-music';
+import { confirmedSpellSounds, releasedAttackSounds } from '../audio/online-sounds';
+import type { Spell } from '../duel/demo-duel';
 
-const WINDUP_MS = 3000;
 const CAST_COOLDOWN_MS = 900;
+const SPELL_IDS: Record<Spell, OnlineSpellId> = {
+  fireball: 'rune.triangle', shield: 'rune.circle', lightning: 'rune.lightning',
+  'twin-flare': 'rune.hourglass', 'time-lock': 'rune.square', spark: 'rune.line',
+};
+const ATTACK_ART: Record<string, { name: string; rune: string; color: string; effect: string; scale: number }> = {
+  'rune.triangle': { name: 'Fireball', rune: '△', color: '#ffba74', effect: 'fireball', scale: 3 },
+  'rune.lightning': { name: 'Lightning', rune: 'ϟ', color: '#d6baff', effect: 'lightning', scale: 3 },
+  'rune.hourglass': { name: 'Twin Flare', rune: '⧖', color: '#ffdc91', effect: 'fireball', scale: 5 },
+  'rune.line': { name: 'Spark', rune: '━', color: '#bdeaff', effect: 'lightning', scale: 2 },
+};
 
 /** Server snapshots own health and results; this module only animates their deadlines. */
-export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthService): { reset(): void; dispose(): void } {
+export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthService, music: BackgroundMusic): { reset(): void; dispose(): void } {
   const abort = new AbortController();
   const canvas = root.querySelector<HTMLCanvasElement>('.duel-stage canvas')!;
   const ctx = canvas.getContext('2d')!;
@@ -26,6 +37,8 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
   let frameId = 0;
   let disposed = false;
   let connected = false;
+  const playedAttackReleases = new Set<string>();
+  const warnedOpponentAttacks = new Set<string>();
   root.setAttribute('aria-label', 'Online duel');
   const roomPanel = document.querySelector<HTMLElement>('[data-room-panel]')!;
   roomPanel.hidden = false;
@@ -39,7 +52,7 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
     }
   }, { signal: abort.signal });
   document.querySelector<HTMLElement>('.game-header .eyebrow')!.textContent = `Wizard Duel / Online room ${code}`;
-  root.querySelector<HTMLElement>('[data-duel-help]')!.textContent = 'Watch the other player’s rune. Draw a circle and open your palm to shield before impact. Your casts and health are checked by the server.';
+  root.querySelector<HTMLElement>('[data-duel-help]')!.textContent = 'All six runes work here. Watch the other player’s attack rune, shield before impact, or use Time Lock to delay their spell. The server checks every cast and hit.';
   root.querySelector<HTMLElement>('.duel-head b')!.textContent = 'LIVE VS';
   for (const button of root.querySelectorAll<HTMLButtonElement>('[data-side], [data-pause], [data-reset]')) button.hidden = true;
   root.querySelector<HTMLElement>('[data-load-error]')!.hidden = true;
@@ -61,21 +74,27 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
     root.querySelector<HTMLProgressElement>('[data-readiness]')!.value = ready;
     root.querySelector<HTMLElement>('[data-ready-label]')!.textContent = incoming && me && now >= me.shieldReadyAtMs
       ? 'Shield ready' : ready >= CAST_COOLDOWN_MS ? 'Ready' : 'Recovering…';
+    const ownAttack = state.attacks.some((attack) => attack.seat === seat && attack.impactAtMs > now);
     for (const button of playerButtons) {
-      const defensive = button.dataset.spell === 'shield' && incoming && me && now >= me.shieldReadyAtMs;
-      button.disabled = !connected || state.phase !== 'active' || (!defensive && ready < CAST_COOLDOWN_MS);
+      const isShield = button.dataset.spell === 'shield';
+      const canShield = me && now >= me.shieldReadyAtMs && (incoming || now >= me.castReadyAtMs);
+      button.disabled = !connected || state.phase !== 'active'
+        || (isShield ? !canShield : ready < CAST_COOLDOWN_MS || ownAttack);
     }
-    threat.hidden = !incoming;
+    threat.hidden = !incoming || now >= incoming.releaseAtMs;
     if (incoming) {
       const charging = now < incoming.releaseAtMs;
       threat.classList.toggle('is-incoming', !charging);
       threat.classList.toggle('enemy-left', incoming.seat === 0);
-      threat.dataset.spell = incoming.spellId === 'rune.triangle' ? 'fireball' : 'lightning';
-      root.querySelector<HTMLElement>('[data-threat-rune]')!.textContent = incoming.spellId === 'rune.triangle' ? '△' : 'ϟ';
-      root.querySelector<HTMLElement>('[data-threat-label]')!.textContent = `${state.players[incoming.seat].login}: ${incoming.spellId === 'rune.triangle' ? 'fireball' : 'lightning'}`;
+      const art = ATTACK_ART[incoming.spellId];
+      threat.dataset.spell = art?.name.toLowerCase().replace(' ', '-') ?? 'fireball';
+      root.querySelector<HTMLElement>('[data-threat-rune]')!.textContent = art?.rune ?? '?';
+      const attacker = state.players[incoming.seat];
+      root.querySelector<HTMLElement>('[data-threat-label]')!.textContent = `${attacker.displayName || attacker.login}: ${art?.name ?? 'spell'}${incoming.slowed ? ' · slowed' : ''}`;
       root.querySelector<HTMLElement>('[data-threat-phase]')!.textContent = charging ? 'Charging — draw a circle to shield!' : 'Incoming — shield now!';
-      root.querySelector<HTMLProgressElement>('[data-threat-progress]')!.value = charging
-        ? Math.max(0, Math.min(WINDUP_MS, now - incoming.startedAtMs)) : WINDUP_MS;
+      const progress = root.querySelector<HTMLProgressElement>('[data-threat-progress]')!;
+      progress.max = incoming.releaseAtMs - incoming.startedAtMs;
+      progress.value = charging ? Math.max(0, Math.min(progress.max, now - incoming.startedAtMs)) : progress.max;
     }
     overlay.hidden = state.phase === 'active';
     root.querySelector<HTMLElement>('[data-overlay-title]')!.textContent = state.phase === 'waiting'
@@ -112,18 +131,27 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
       const x = side === 0 ? 320 : 1140;
       sprite(clip.frames[frame].path, x, 436, clip.width, clip.height, clip.pivot, 3, side === 1);
       if (state.players[side]?.shieldUntilMs > now) effect('shield', now, x, 330, false, 4);
+      if (state.players[side]?.slowNextAttack || attack?.slowed) {
+        ctx.save(); ctx.strokeStyle = '#c9a8ff'; ctx.shadowColor = '#a16cff'; ctx.shadowBlur = 22;
+        ctx.lineWidth = 5; ctx.strokeRect(x - 94, 145, 188, 222); ctx.restore();
+      }
       if (attack && now < attack.releaseAtMs) {
-        ctx.save(); ctx.fillStyle = attack.spellId === 'rune.triangle' ? '#ffba74' : '#d6baff';
+        if (side !== seat) warnedOpponentAttacks.add(`${attack.seat}:${attack.startedAtMs}`);
+        const art = ATTACK_ART[attack.spellId];
+        ctx.save(); ctx.fillStyle = art?.color ?? '#ffba74';
         ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 32; ctx.font = 'bold 82px sans-serif';
-        ctx.textAlign = 'center'; ctx.fillText(attack.spellId === 'rune.triangle' ? '△' : 'ϟ', x, 150); ctx.restore();
+        ctx.textAlign = 'center'; ctx.fillText(art?.rune ?? '?', x, 150); ctx.restore();
       }
     }
     for (const attack of state.attacks) {
       if (now < attack.releaseAtMs) continue;
       const t = Math.min(1, (now - attack.releaseAtMs) / (attack.impactAtMs - attack.releaseAtMs));
-      effect(attack.spellId === 'rune.triangle' ? 'fireball' : 'lightning', now - attack.releaseAtMs,
-        attack.seat === 0 ? 430 + t * 640 : 1030 - t * 640, 330, attack.seat === 1);
+      const art = ATTACK_ART[attack.spellId];
+      if (art) effect(art.effect, now - attack.releaseAtMs,
+        attack.seat === 0 ? 430 + t * 640 : 1030 - t * 640, 330, attack.seat === 1, art.scale);
     }
+    releasedAttackSounds(state, now, playedAttackReleases, warnedOpponentAttacks, seat)
+      .forEach(({ spell, remainingMs }) => spellAudio.play(spell, remainingMs));
     for (const impact of state.impacts) {
       const age = now - impact.atMs;
       if (age < 0 || age >= 700) continue;
@@ -140,14 +168,14 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
   };
   tick();
   const sendCast = (spellId: string) => {
-    if (!['rune.triangle', 'rune.circle', 'rune.lightning'].includes(spellId)) {
-      status.textContent = 'This spell is available in training mode only. Online duels currently use fireball, shield, and lightning.';
+    if (!(ONLINE_SPELL_IDS as readonly string[]).includes(spellId)) {
+      status.textContent = 'That rune is not available in this duel.';
       return;
     }
     if (!client?.cast(spellId)) status.textContent = 'Not connected yet. Wait for both players.';
   };
   for (const button of playerButtons) button.addEventListener('click', () => {
-    sendCast(button.dataset.spell === 'fireball' ? 'rune.triangle' : button.dataset.spell === 'shield' ? 'rune.circle' : 'rune.lightning');
+    sendCast(SPELL_IDS[button.dataset.spell as Spell]);
   }, { signal: abort.signal });
   window.addEventListener('spell-cast', ((event: CustomEvent<SpellCastPayload>) => sendCast(event.detail.spellId)) as EventListener, { signal: abort.signal });
 
@@ -162,14 +190,21 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
     seat = body.seat;
     client = new RoomClient(auth.apiBaseUrl(), code, token, {
       onState(next) {
+        if (!state) {
+          const now = client?.serverNow() ?? next.serverTimeMs;
+          for (const attack of next.attacks) {
+            if (attack.releaseAtMs <= now) playedAttackReleases.add(`${attack.seat}:${attack.startedAtMs}`);
+          }
+        }
         confirmedSpellSounds(state, next).forEach((spell) => spellAudio.play(spell));
         connected = true;
         state = next;
+        music.setActive(next.phase === 'active');
         status.textContent = next.phase === 'waiting' ? `Room ${code} · waiting for opponent`
           : next.phase === 'finished' ? 'Match finished.' : 'Online duel active. Draw a rune and release your spell.';
       },
-      onStatus(message) { connected = false; status.textContent = message; },
-      onError(message) { if (message.includes('access expired')) connected = false; status.textContent = message; },
+      onStatus(message) { connected = false; music.setActive(false); status.textContent = message; },
+      onError(message) { if (message.includes('access expired')) { connected = false; music.setActive(false); } status.textContent = message; },
     });
     client.connect();
     const art = await fetch(`${base}manifest.json`, { signal: abort.signal });
@@ -184,6 +219,6 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
   });
   return {
     reset() {},
-    dispose() { disposed = true; abort.abort(); client?.dispose(); cancelAnimationFrame(frameId); },
+    dispose() { disposed = true; music.setActive(false); abort.abort(); client?.dispose(); cancelAnimationFrame(frameId); },
   };
 }

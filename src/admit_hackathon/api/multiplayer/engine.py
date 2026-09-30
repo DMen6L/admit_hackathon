@@ -7,11 +7,16 @@ HEALTH = 100
 COOLDOWN_MS = 900
 WINDUP_MS = 3000
 SHIELD_MS = 4300
+TIME_LOCK_DELAY_MS = 1500
 SPELLS = {
     "rune.triangle": (20, 800),
     "rune.lightning": (15, 500),
+    "rune.hourglass": (45, 1000),
+    "rune.line": (7, 200),
 }
 SHIELD = "rune.circle"
+TIME_LOCK = "rune.square"
+CASTABLE_SPELLS = frozenset((*SPELLS, SHIELD, TIME_LOCK))
 
 
 class CastRejected(ValueError):
@@ -29,6 +34,7 @@ class Fighter:
     cast_at_ms: int = -10_000_000_000_000
     shield_at_ms: int = -10_000_000_000_000
     shield_until_ms: int = 0
+    slow_next_attack: bool = False
 
 
 @dataclass
@@ -38,6 +44,15 @@ class Attack:
     started_at_ms: int
     release_at_ms: int
     impact_at_ms: int
+    slowed: bool = False
+
+
+@dataclass
+class CastEvent:
+    id: int
+    seat: int
+    spell_id: str
+    at_ms: int
 
 
 @dataclass
@@ -55,6 +70,7 @@ class Match:
     revision: int = 0
     attacks: list[Attack] = field(default_factory=list)
     impacts: list[Impact] = field(default_factory=list)
+    casts: list[CastEvent] = field(default_factory=list)
     winner: int | None = None
 
     def add_player(self, user_id: UUID, login: str, display_name: str | None = None) -> int:
@@ -75,7 +91,7 @@ class Match:
         self.advance(now_ms)
         if self.phase != "active" or seat not in (0, 1):
             raise CastRejected("not_ready")
-        if spell_id not in SPELLS and spell_id != SHIELD:
+        if spell_id not in CASTABLE_SPELLS:
             raise CastRejected("invalid_spell")
         player = self.players[seat]
         incoming = any(attack.seat != seat and attack.impact_at_ms > now_ms for attack in self.attacks)
@@ -89,10 +105,28 @@ class Match:
                 attack.seat == seat and attack.impact_at_ms > now_ms for attack in self.attacks
             ):
                 raise CastRejected("cooldown")
-            _, travel_ms = SPELLS[spell_id]
-            self.attacks.append(Attack(seat, spell_id, now_ms, now_ms + WINDUP_MS, now_ms + WINDUP_MS + travel_ms))
+            if spell_id == TIME_LOCK:
+                target = 1 - seat
+                incoming_attack = next((attack for attack in self.attacks
+                                        if attack.seat == target and attack.impact_at_ms > now_ms), None)
+                if incoming_attack and incoming_attack.release_at_ms > now_ms and not incoming_attack.slowed:
+                    incoming_attack.release_at_ms += TIME_LOCK_DELAY_MS
+                    incoming_attack.impact_at_ms += TIME_LOCK_DELAY_MS
+                    incoming_attack.slowed = True
+                else:
+                    self.players[target].slow_next_attack = True
+            else:
+                _, travel_ms = SPELLS[spell_id]
+                windup_ms = WINDUP_MS + (TIME_LOCK_DELAY_MS if player.slow_next_attack else 0)
+                if spell_id == "rune.hourglass":
+                    windup_ms += TIME_LOCK_DELAY_MS  # Powerful attacks give more warning.
+                self.attacks.append(Attack(seat, spell_id, now_ms, now_ms + windup_ms,
+                                           now_ms + windup_ms + travel_ms, player.slow_next_attack))
+                player.slow_next_attack = False
         player.cast_at_ms = now_ms
         self.revision += 1
+        self.casts.append(CastEvent(self.revision, seat, spell_id, now_ms))
+        self.casts = self.casts[-32:]
 
     def advance(self, now_ms: int) -> bool:
         before = self.revision
@@ -135,14 +169,18 @@ class Match:
                 {"seat": seat, "login": player.login, "displayName": player.display_name, "health": player.health,
                  "castReadyAtMs": player.cast_at_ms + COOLDOWN_MS,
                  "shieldReadyAtMs": player.shield_at_ms + COOLDOWN_MS,
-                 "shieldUntilMs": player.shield_until_ms}
+                 "shieldUntilMs": player.shield_until_ms, "slowNextAttack": player.slow_next_attack}
                 for seat, player in enumerate(self.players)
             ],
             "attacks": [
                 {"seat": attack.seat, "spellId": attack.spell_id,
                  "startedAtMs": attack.started_at_ms, "releaseAtMs": attack.release_at_ms,
-                 "impactAtMs": attack.impact_at_ms}
+                 "impactAtMs": attack.impact_at_ms, "slowed": attack.slowed}
                 for attack in self.attacks
+            ],
+            "casts": [
+                {"id": cast.id, "seat": cast.seat, "spellId": cast.spell_id, "atMs": cast.at_ms}
+                for cast in self.casts
             ],
             "impacts": [
                 {"seat": impact.seat, "spellId": impact.spell_id,

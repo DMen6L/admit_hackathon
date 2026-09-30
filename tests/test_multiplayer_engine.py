@@ -2,7 +2,9 @@ from uuid import uuid4
 
 import pytest
 
-from admit_hackathon.api.multiplayer.engine import CastRejected, Match, SHIELD, WINDUP_MS
+from admit_hackathon.api.multiplayer.engine import (
+    CastRejected, Match, SHIELD, SPELLS, TIME_LOCK, TIME_LOCK_DELAY_MS, WINDUP_MS,
+)
 
 
 def match() -> Match:
@@ -64,3 +66,41 @@ def test_match_end_and_forfeit_are_authoritative() -> None:
     another.forfeit(0)
     assert another.phase == "finished"
     assert another.winner == 1
+
+
+@pytest.mark.parametrize("spell_id,damage,travel_ms", [
+    ("rune.triangle", 20, 800), ("rune.lightning", 15, 500),
+    ("rune.hourglass", 45, 1000), ("rune.line", 7, 200),
+])
+def test_every_attack_spell_has_server_side_damage_and_warning(spell_id: str, damage: int, travel_ms: int) -> None:
+    game = match()
+    game.cast(0, spell_id, 1000)
+    attack = game.attacks[0]
+    expected_windup = WINDUP_MS + (TIME_LOCK_DELAY_MS if spell_id == "rune.hourglass" else 0)
+    assert attack.release_at_ms - attack.started_at_ms == expected_windup
+    assert attack.impact_at_ms - attack.release_at_ms == travel_ms
+    assert game.snapshot(1000)["casts"][-1]["spellId"] == spell_id
+    game.advance(attack.impact_at_ms)
+    assert game.players[1].health == 100 - damage
+    assert set(SPELLS) == {"rune.triangle", "rune.lightning", "rune.hourglass", "rune.line"}
+
+
+def test_time_lock_delays_current_or_next_attack_and_is_a_confirmed_cast() -> None:
+    game = match()
+    game.cast(0, "rune.triangle", 1000)
+    original_impact = game.attacks[0].impact_at_ms
+    game.cast(1, TIME_LOCK, 1500)
+    assert game.attacks[0].slowed is True
+    assert game.attacks[0].impact_at_ms == original_impact + TIME_LOCK_DELAY_MS
+    assert game.snapshot(1500)["casts"][-1]["spellId"] == TIME_LOCK
+    game.advance(original_impact)
+    assert game.players[1].health == 100
+    game.advance(original_impact + TIME_LOCK_DELAY_MS)
+    assert game.players[1].health == 80
+
+    another = match()
+    another.cast(0, TIME_LOCK, 1000)
+    assert another.players[1].slow_next_attack is True
+    another.cast(1, "rune.line", 2000)
+    assert another.attacks[0].release_at_ms - 2000 == WINDUP_MS + TIME_LOCK_DELAY_MS
+    assert another.players[1].slow_next_attack is False

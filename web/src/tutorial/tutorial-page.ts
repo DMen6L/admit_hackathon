@@ -8,6 +8,7 @@ import { IndexPathRecorder, type PathPoint, type RecordedStroke } from '../drawi
 import { DEFAULT_SHAPE_TEMPLATES, ShapeEvaluator } from '../shapes/shape-evaluator';
 import { TutorialFlow, LESSONS } from './tutorial-flow';
 import { mountSoundToggle, SHAPE_SOUND, spellAudio } from '../audio/spell-audio';
+import { BackgroundMusic } from '../audio/background-music';
 import type { HandLandmarker } from '@mediapipe/tasks-vision';
 
 const auth = new ApiAuthService(globalThis.fetch.bind(globalThis), window.localStorage, window.sessionStorage);
@@ -25,6 +26,7 @@ const cameraStart = get<HTMLButtonElement>('#tutorial-camera-start');
 const cameraStop = get<HTMLButtonElement>('#tutorial-camera-stop');
 const feedback = get<HTMLElement>('#lesson-feedback');
 const unmountSound = mountSoundToggle(get<HTMLButtonElement>('#sound-toggle'));
+const music = new BackgroundMusic(spellAudio);
 let pointerPoints: PathPoint[] = [];
 let pointerId: number | undefined;
 let tracker: HandLandmarker | undefined;
@@ -63,6 +65,7 @@ function paintStroke(context: CanvasRenderingContext2D, canvas: HTMLCanvasElemen
 }
 
 function render(): void {
+  music.setActive(!flow.complete);
   const lesson = flow.lesson;
   const number = flow.index + 1;
   get<HTMLElement>('#lesson-number').textContent = `Lesson ${number} of ${LESSONS.length}`;
@@ -222,7 +225,7 @@ cameraStart.addEventListener('click', async () => {
   }
 });
 cameraStop.addEventListener('click', () => stopCamera());
-window.addEventListener('pagehide', () => { stopCamera(); cancelAnimationFrame(threatFrame); tracker?.close(); tracker = undefined; unmountSound(); });
+window.addEventListener('pagehide', () => { stopCamera(); cancelAnimationFrame(threatFrame); tracker?.close(); tracker = undefined; music.dispose(); unmountSound(); });
 
 void auth.restoreSession().then((user) => {
   if (!user) { window.location.replace(import.meta.env.BASE_URL); return; }

@@ -71,6 +71,16 @@ def test_two_authenticated_users_join_and_exchange_authoritative_state(monkeypat
                     assert impact_one["revision"] == impact_two["revision"]
                     assert impact_one["impacts"][0]["blocked"] is True
                     assert impact_one["players"][1]["health"] == 100
+                    one.send_json({"type": "cast", "v": 1, "seq": 2, "spellId": "rune.square"})
+                    locked = one.receive_json()
+                    assert locked["casts"][-1]["spellId"] == "rune.square"
+                    assert locked["players"][1]["slowNextAttack"] is True
+                    assert two.receive_json()["revision"] == locked["revision"]
+                    two.send_json({"type": "cast", "v": 1, "seq": 2, "spellId": "rune.line"})
+                    sparked = two.receive_json()
+                    assert sparked["attacks"][0]["spellId"] == "rune.line"
+                    assert sparked["attacks"][0]["slowed"] is True
+                    assert one.receive_json()["revision"] == sparked["revision"]
                 disconnected = one.receive_json()
                 assert disconnected["connectedSeats"] == [0]
                 assert disconnected["revision"] > impact_one["revision"]

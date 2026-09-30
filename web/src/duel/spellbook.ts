@@ -10,11 +10,11 @@ const SPELLS: readonly SpellGuideEntry[] = [
   { name: 'Shield', glyph: '○', gesture: 'Draw a circle', effect: 'Block the next incoming hit' },
   { name: 'Lightning', glyph: 'ϟ', gesture: 'Draw a zigzag', effect: 'Quick strike · 15 damage' },
   { name: 'Twin Flare', glyph: '⧖', gesture: 'Start at center; draw top, then bottom triangle in one stroke', effect: 'Slow, powerful attack · 45 damage' },
-  { name: 'Time Lock', glyph: '□', gesture: 'Draw a square or rectangle', effect: 'Reveal and delay the opponent’s attack by 1.5 seconds' },
+  { name: 'Time Lock', glyph: '□', gesture: 'Draw a square or rectangle', effect: 'Delay the opponent’s current or next attack by 1.5 seconds' },
   { name: 'Spark', glyph: '━', gesture: 'Draw one straight line', effect: 'Fast, light attack · 7 damage' },
 ];
 
-export function mountSpellbook(root: HTMLElement, online = false): { dispose(): void } {
+export function mountSpellbook(root: HTMLElement): { dispose(): void } {
   const toggle = root.querySelector<HTMLButtonElement>('#spellbook-toggle')!;
   const closeButton = root.querySelector<HTMLButtonElement>('#spellbook-close')!;
   const panel = root.querySelector<HTMLElement>('#spellbook-panel')!;
@@ -22,7 +22,7 @@ export function mountSpellbook(root: HTMLElement, online = false): { dispose(): 
   const count = root.querySelector<HTMLElement>('#spellbook-count')!;
   const abort = new AbortController();
 
-  const availableSpells = online ? SPELLS.slice(0, 3) : SPELLS;
+  const availableSpells = SPELLS;
   count.textContent = String(availableSpells.length);
   list.replaceChildren(...availableSpells.map(({ name, glyph, gesture, effect }) => {
     const item = document.createElement('li');

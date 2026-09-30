@@ -1,4 +1,5 @@
 import type { Spell } from '../duel/demo-duel';
+import { audioAssetUrl } from './audio-asset-url';
 
 interface Note {
   from: number;
@@ -9,7 +10,7 @@ interface Note {
   volume: number;
 }
 
-/** Short, deliberately quiet cues. No external audio asset or network request is needed. */
+/** Short synthesized cues for spells without recordings, or if a recording is unavailable. */
 export const SPELL_SOUNDS: Readonly<Record<Spell, readonly Note[]>> = {
   spark: [
     { from: 660, to: 1040, at: 0, duration: .10, wave: 'triangle', volume: .10 },
@@ -45,12 +46,46 @@ export const SHAPE_SOUND: Readonly<Record<string, Spell>> = {
   square: 'time-lock', hourglass: 'twin-flare',
 };
 
-const STORAGE_KEY = 'wizard-duel:sound-muted';
+/** Recorded effects take priority; the synthesized cues remain an offline fallback. */
+export const RECORDED_SOUNDS: Partial<Record<Spell, { file: string; gain: number }>> = {
+  spark: { file: 'spark.wav', gain: 2 },
+  fireball: { file: 'fireball.wav', gain: .85 },
+  shield: { file: 'shield.wav', gain: 6 },
+  lightning: { file: 'lightning.wav', gain: 2.6 },
+  'time-lock': { file: 'time-lock.mp3', gain: 1.4 },
+  'twin-flare': { file: 'twin-flare.ogg', gain: 1.6 },
+};
 
-class SpellAudio {
+const STORAGE_KEY = 'wizard-duel:sound-muted';
+const MAX_SOUND_SECONDS = 2;
+
+interface SoundSample { buffer: AudioBuffer; offset: number; duration: number }
+
+/** Remove quiet lead-in so the audible effect starts at the game event. */
+function audibleWindow(buffer: AudioBuffer): SoundSample {
+  const channels = Array.from({ length: buffer.numberOfChannels }, (_, index) => buffer.getChannelData(index));
+  const windowFrames = Math.max(1, Math.round(buffer.sampleRate * .01));
+  const levels: number[] = [];
+  for (let start = 0; start < buffer.length; start += windowFrames) {
+    let power = 0;
+    const end = Math.min(start + windowFrames, buffer.length);
+    for (const channel of channels) {
+      for (let frame = start; frame < end; frame++) power += channel[frame] ** 2;
+    }
+    levels.push(Math.sqrt(power / ((end - start) * channels.length)));
+  }
+  const threshold = Math.max(.002, Math.max(...levels) * .08);
+  const firstAudible = levels.findIndex((level) => level >= threshold);
+  const offset = firstAudible < 0 ? 0 : Math.max(0, firstAudible * windowFrames / buffer.sampleRate - .01);
+  return { buffer, offset, duration: Math.min(MAX_SOUND_SECONDS, buffer.duration - offset) };
+}
+
+export class SpellAudio {
   private context: AudioContext | undefined;
   private muted = false;
   private readonly listeners = new Set<(muted: boolean) => void>();
+  private readonly samples = new Map<Spell, SoundSample>();
+  private readonly sampleLoads = new Map<Spell, Promise<void>>();
 
   constructor() {
     try { this.muted = typeof window !== 'undefined' && window.localStorage.getItem(STORAGE_KEY) === 'true'; } catch { /* Private storage can be unavailable. */ }
@@ -79,17 +114,67 @@ class SpellAudio {
     } catch { /* Keep gameplay working if audio is unavailable. */ }
   }
 
-  play(spell: Spell): void {
-    if (this.muted) return;
-    void this.unlock().then(() => {
+  async preload(): Promise<void> {
+    if (typeof window === 'undefined' || !('AudioContext' in window)) return;
+    const loads: Promise<void>[] = [];
+    for (const [spell, settings] of Object.entries(RECORDED_SOUNDS) as [Spell, NonNullable<typeof RECORDED_SOUNDS[Spell]>][]) {
+      const existing = this.sampleLoads.get(spell);
+      if (existing) { loads.push(existing); continue; }
+      const loading = fetch(audioAssetUrl(settings.file))
+        .then((response) => { if (!response.ok) throw new Error('Audio unavailable'); return response.arrayBuffer(); })
+        .then(async (data) => {
+          this.context ??= new AudioContext();
+          this.samples.set(spell, audibleWindow(await this.context.decodeAudioData(data)));
+        })
+        .catch(() => { /* A missing recording falls back to the synthesized cue. */ });
+      this.sampleLoads.set(spell, loading);
+      loads.push(loading);
+    }
+    await Promise.all(loads);
+  }
+
+  private playRecorded(spell: Spell, context: AudioContext, start: number, maxDurationSeconds: number): boolean {
+    const sample = this.samples.get(spell);
+    const settings = RECORDED_SOUNDS[spell];
+    if (!sample || !settings) return false;
+    const { buffer, offset } = sample;
+    const duration = Math.min(sample.duration, maxDurationSeconds);
+    if (duration <= .06) return false;
+    try {
+      const source = context.createBufferSource();
+      const gain = context.createGain();
+      const compressor = context.createDynamicsCompressor();
+      const end = start + duration;
+      source.buffer = buffer;
+      gain.gain.setValueAtTime(.0001, start);
+      gain.gain.linearRampToValueAtTime(settings.gain, start + .02);
+      gain.gain.setValueAtTime(settings.gain, end - Math.min(.08, duration / 4));
+      gain.gain.linearRampToValueAtTime(.0001, end);
+      compressor.threshold.value = -12;
+      compressor.ratio.value = 8;
+      source.connect(gain);
+      gain.connect(compressor);
+      compressor.connect(context.destination);
+      source.start(start, offset, duration);
+      source.onended = () => { source.disconnect(); gain.disconnect(); compressor.disconnect(); };
+      return true;
+    } catch { return false; }
+  }
+
+  play(spell: Spell, maxDurationMs = MAX_SOUND_SECONDS * 1000): void {
+    if (this.muted || maxDurationMs <= 60) return;
+    const schedule = (remainingMs: number) => {
       const context = this.context;
-      if (!context || context.state !== 'running' || this.muted) return;
+      if (!context || context.state !== 'running' || this.muted || remainingMs <= 60) return;
       const start = context.currentTime + .008;
+      const maxDurationSeconds = Math.min(MAX_SOUND_SECONDS, remainingMs / 1000);
+      if (this.playRecorded(spell, context, start, maxDurationSeconds)) return;
       for (const note of SPELL_SOUNDS[spell]) {
         const oscillator = context.createOscillator();
         const gain = context.createGain();
         const at = start + note.at;
-        const end = at + note.duration;
+        const end = Math.min(at + note.duration, start + maxDurationSeconds);
+        if (end <= at + .02) continue;
         oscillator.type = note.wave;
         oscillator.frequency.setValueAtTime(note.from, at);
         oscillator.frequency.exponentialRampToValueAtTime(note.to, end);
@@ -101,7 +186,10 @@ class SpellAudio {
         oscillator.stop(end + .02);
         oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
       }
-    });
+    };
+    if (this.context?.state === 'running') { schedule(maxDurationMs); return; }
+    const requestedAt = performance.now();
+    void this.unlock().then(() => schedule(maxDurationMs - (performance.now() - requestedAt)));
   }
 }
 
@@ -109,6 +197,7 @@ export const spellAudio = new SpellAudio();
 
 /** Call once per page; browser audio unlocks on the first user interaction. */
 export function mountSoundToggle(button: HTMLButtonElement): () => void {
+  void spellAudio.preload();
   const unsubscribe = spellAudio.subscribe((muted) => {
     button.textContent = muted ? 'Sound off' : 'Sound on';
     button.setAttribute('aria-pressed', String(!muted));

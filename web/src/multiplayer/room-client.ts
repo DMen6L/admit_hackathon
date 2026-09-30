@@ -1,4 +1,4 @@
-import { isMatchState, websocketRoomUrl, type MatchState, type OnlineSpellId } from './protocol';
+import { isMatchState, ONLINE_SPELL_IDS, websocketRoomUrl, type MatchState, type OnlineSpellId } from './protocol';
 
 export interface RoomClientEvents {
   onState(state: MatchState): void;
@@ -75,7 +75,7 @@ export class RoomClient {
   }
 
   cast(spellId: string): boolean {
-    if (!['rune.triangle', 'rune.circle', 'rune.lightning'].includes(spellId)) return false;
+    if (!(ONLINE_SPELL_IDS as readonly string[]).includes(spellId)) return false;
     if (this.socket?.readyState !== WebSocket.OPEN || this.revision < 0) return false;
     this.socket.send(JSON.stringify({ type: 'cast', v: 1, seq: ++this.seq, spellId: spellId as OnlineSpellId }));
     return true;

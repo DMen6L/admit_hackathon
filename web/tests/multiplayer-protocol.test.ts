@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isMatchState, websocketRoomUrl } from '../src/multiplayer/protocol';
+import { isMatchState, ONLINE_SPELL_IDS, websocketRoomUrl } from '../src/multiplayer/protocol';
 import { normalizeRoomCode, roomCodeFromSearch } from '../src/multiplayer/room-code';
 
 describe('multiplayer protocol', () => {
@@ -11,12 +11,14 @@ describe('multiplayer protocol', () => {
   it('rejects unrelated or old-version server messages before rendering', () => {
     const state = {
       type: 'state', v: 1, revision: 3, serverTimeMs: 1000, phase: 'active',
-      players: [], attacks: [], impacts: [], connectedSeats: [], winner: null,
+      players: [], attacks: [], casts: [], impacts: [], connectedSeats: [], winner: null,
     };
     expect(isMatchState(state)).toBe(true);
     expect(isMatchState({ ...state, v: 2 })).toBe(false);
     expect(isMatchState({ ...state, attacks: null })).toBe(false);
+    expect(isMatchState({ ...state, casts: null })).toBe(false);
     expect(isMatchState({ type: 'error', v: 1 })).toBe(false);
+    expect(ONLINE_SPELL_IDS).toHaveLength(6);
   });
 });
 

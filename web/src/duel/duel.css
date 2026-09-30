@@ -18,6 +18,10 @@
 .enemy-telegraph[data-spell="fireball"] .enemy-telegraph__rune { color: #ffbb73; }
 .enemy-telegraph.enemy-left { left: 5%; right: auto; }
 .enemy-telegraph[data-spell="lightning"] .enemy-telegraph__rune { color: #d6baff; }
+.enemy-telegraph[data-spell="twin-flare"] { border-color: #f3d486; box-shadow: 0 0 30px #ffc46366; }
+.enemy-telegraph[data-spell="twin-flare"] .enemy-telegraph__rune { color: #ffe2a1; }
+.enemy-telegraph[data-spell="spark"] { border-color: #a7e0f8; box-shadow: 0 0 30px #83d8fa66; }
+.enemy-telegraph[data-spell="spark"] .enemy-telegraph__rune { color: #bcecff; }
 .enemy-telegraph__copy { min-width: 0; display: grid; gap: 4px; }
 .enemy-telegraph__copy strong { text-transform: capitalize; font-size: clamp(.7rem, 1.4vw, 1rem); }
 .enemy-telegraph__copy span { font-size: clamp(.6rem, 1.1vw, .8rem); line-height: 1.2; }
