@@ -7,7 +7,7 @@ export interface MatchState {
   revision: number;
   serverTimeMs: number;
   phase: RoomPhase;
-  players: Array<{ seat: number; login: string; health: number; castReadyAtMs: number; shieldReadyAtMs: number; shieldUntilMs: number }>;
+  players: Array<{ seat: number; login: string; displayName?: string; health: number; castReadyAtMs: number; shieldReadyAtMs: number; shieldUntilMs: number }>;
   attacks: Array<{ seat: number; spellId: OnlineSpellId; startedAtMs: number; releaseAtMs: number; impactAtMs: number }>;
   impacts: Array<{ seat: number; spellId: OnlineSpellId; atMs: number; blocked: boolean }>;
   connectedSeats: number[];

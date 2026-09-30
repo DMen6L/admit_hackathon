@@ -8,6 +8,7 @@ from .db import get_db
 from .schemas import AuthResponse, Credentials, UserResponse
 from .settings import get_settings
 from .multiplayer.rooms import router as multiplayer_router
+from .profile import router as profile_router
 
 settings = get_settings()
 app = FastAPI(title="Webcam Magic API", version="0.1.0")
@@ -18,7 +19,7 @@ app.add_middleware(
     # development working without requiring a backend rebuild for each port.
     allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
@@ -37,11 +38,12 @@ def login(credentials: Credentials, db: Session = Depends(get_db)) -> AuthRespon
 
 @auth_router.get("/me", response_model=UserResponse)
 def me(user=Depends(get_current_user)) -> UserResponse:
-    return UserResponse.model_validate(user)
+    return UserResponse(id=user.id, login=user.login, display_name=user.display_name or user.login)
 
 
 app.include_router(auth_router)
 app.include_router(multiplayer_router)
+app.include_router(profile_router)
 
 
 @app.get("/")

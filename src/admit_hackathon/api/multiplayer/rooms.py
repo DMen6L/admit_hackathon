@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import secrets
 import string
 import time
@@ -10,10 +11,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 from ..auth import get_current_user, user_from_token
 from ..db import SessionLocal
 from ..models import User
+from ..profile import record_online_result
 from ..settings import get_settings
 from .engine import CastRejected, Match
 
@@ -22,6 +25,7 @@ ROOM_ALPHABET = string.ascii_uppercase + string.digits
 ROOM_IDLE_MS = 30 * 60 * 1000
 DISCONNECT_GRACE_MS = 15_000
 MAX_ROOMS = 256
+logger = logging.getLogger(__name__)
 
 
 def now_ms() -> int:
@@ -48,11 +52,15 @@ class Room:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     last_activity_ms: int = field(default_factory=now_ms)
     task: asyncio.Task | None = None
+    stats_recorded: bool = False
+    stats_retry_at_ms: int = 0
+    last_broadcast_revision: int = -1
 
     async def broadcast(self) -> None:
         snapshot = self.match.snapshot(now_ms())
         snapshot["connectedSeats"] = sorted(self.peers)
         await asyncio.gather(*(peer.send(snapshot) for peer in self.peers.values()), return_exceptions=True)
+        self.last_broadcast_revision = self.match.revision
 
 
 class RoomManager:
@@ -60,7 +68,7 @@ class RoomManager:
         self.rooms: dict[str, Room] = {}
         self.lock = asyncio.Lock()
 
-    async def create(self, user_id: UUID, login: str) -> Room:
+    async def create(self, user_id: UUID, login: str, display_name: str | None = None) -> Room:
         async with self.lock:
             current = now_ms()
             for code, old in tuple(self.rooms.items()):
@@ -75,11 +83,11 @@ class RoomManager:
                 if code not in self.rooms:
                     break
             room = Room(code)
-            room.match.add_player(user_id, login)
+            room.match.add_player(user_id, login, display_name)
             self.rooms[code] = room
             return room
 
-    async def join(self, code: str, user_id: UUID, login: str) -> tuple[Room, int]:
+    async def join(self, code: str, user_id: UUID, login: str, display_name: str | None = None) -> tuple[Room, int]:
         room = self.rooms.get(code.upper())
         if room is None or (not room.peers and now_ms() - room.last_activity_ms >= ROOM_IDLE_MS):
             raise HTTPException(404, "Room not found.")
@@ -89,7 +97,7 @@ class RoomManager:
                     return room, seat
             if room.match.phase != "waiting" or len(room.match.players) >= 2:
                 raise HTTPException(409, "Room is full or already started.")
-            seat = room.match.add_player(user_id, login)
+            seat = room.match.add_player(user_id, login, display_name)
             room.last_activity_ms = now_ms()
             await room.broadcast()
             return room, seat
@@ -106,6 +114,15 @@ class RoomManager:
                             room.match.forfeit(seat)
                             del room.disconnected_at_ms[seat]
                             changed = True
+                    if (room.match.phase == "finished" and not room.stats_recorded
+                            and len(room.match.players) == 2 and now >= room.stats_retry_at_ms):
+                        try:
+                            await asyncio.to_thread(self.record_result, room)
+                            room.stats_recorded = True
+                        except SQLAlchemyError:
+                            logger.exception("Could not record online duel result for room %s", room.code)
+                            room.stats_retry_at_ms = now + 5000
+                    changed = changed or room.match.revision != room.last_broadcast_revision
                     if changed:
                         await room.broadcast()
                     if not room.peers and now - room.last_activity_ms >= ROOM_IDLE_MS:
@@ -114,19 +131,25 @@ class RoomManager:
         except asyncio.CancelledError:
             return
 
+    @staticmethod
+    def record_result(room: Room) -> None:
+        player_ids = (room.match.players[0].user_id, room.match.players[1].user_id)
+        with SessionLocal() as db:
+            record_online_result(db, player_ids, room.match.winner)
+
 
 manager = RoomManager()
 
 
 @router.post("/api/rooms", status_code=201)
 async def create_room(user: User = Depends(get_current_user)) -> dict:
-    room = await manager.create(user.id, user.login)
+    room = await manager.create(user.id, user.login, user.display_name or user.login)
     return {"code": room.code, "seat": 0, "phase": room.match.phase}
 
 
 @router.post("/api/rooms/{code}/join")
 async def join_room(code: str, user: User = Depends(get_current_user)) -> dict:
-    room, seat = await manager.join(code, user.id, user.login)
+    room, seat = await manager.join(code, user.id, user.login, user.display_name or user.login)
     return {"code": room.code, "seat": seat, "phase": room.match.phase}
 
 

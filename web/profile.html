@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#091321" />
+    <title>Your profile · Wizard Duel</title>
+  </head>
+  <body class="profile-page">
+    <p id="profile-loading" role="status">Loading your profile…</p>
+    <main id="profile-screen" class="profile-shell" hidden>
+      <header class="profile-header">
+        <a class="profile-brand" href="./lobby.html"><span aria-hidden="true">✦</span> Wizard Duel</a>
+        <a class="profile-back" href="./lobby.html">← Back to lobby</a>
+      </header>
+
+      <section class="profile-hero" aria-labelledby="profile-title">
+        <div class="profile-avatar" data-avatar aria-hidden="true">✧</div>
+        <div>
+          <p class="eyebrow">Spellcaster profile</p>
+          <h1 id="profile-title" data-display-name></h1>
+          <p class="profile-handle">@<span data-login></span> <span aria-hidden="true">·</span> Joined <time data-joined></time></p>
+        </div>
+      </section>
+
+      <section class="profile-stats" aria-labelledby="profile-stats-title">
+        <div class="profile-section-heading"><div><p class="eyebrow">Your record</p><h2 id="profile-stats-title">Online duels</h2></div><span class="profile-section-heading__note">Server-recorded results</span></div>
+        <div class="profile-stats__grid">
+          <div><strong data-stat="played">0</strong><span>Played</span></div>
+          <div><strong data-stat="won">0</strong><span>Wins</span></div>
+          <div><strong data-stat="lost">0</strong><span>Losses</span></div>
+          <div><strong data-stat="drawn">0</strong><span>Draws</span></div>
+          <div><strong data-stat="win-rate">0%</strong><span>Win rate</span></div>
+        </div>
+        <p class="profile-stats__note">Training-bot matches run locally and are not included in these online totals.</p>
+      </section>
+
+      <section class="profile-settings" aria-labelledby="profile-settings-title">
+        <div><p class="eyebrow">Identity</p><h2 id="profile-settings-title">How others see you</h2><p>Change the name shown in the lobby and in new duels. Your account login stays the same.</p></div>
+        <form id="name-form">
+          <label for="display-name">Display name</label>
+          <input id="display-name" name="displayName" type="text" minlength="2" maxlength="32" autocomplete="nickname" required aria-describedby="name-help name-status" />
+          <p id="name-help">2–32 characters. You can use spaces and Unicode characters.</p>
+          <div class="profile-settings__actions"><button id="save-name" type="submit">Save name</button><p id="name-status" role="status" aria-live="polite"></p></div>
+        </form>
+      </section>
+
+      <section class="profile-account" aria-labelledby="profile-account-title">
+        <div><p class="eyebrow">Account</p><h2 id="profile-account-title">Sign-in details</h2><p>Your login is <strong>@<span data-login></span></strong>. It is used only to sign in and cannot be changed here.</p></div>
+        <button id="profile-sign-out" type="button">Sign out</button>
+      </section>
+    </main>
+    <script type="module" src="/src/profile/profile-page.ts"></script>
+  </body>
+</html>

@@ -4,6 +4,8 @@
 .lobby-brand { display: inline-flex; align-items: center; gap: 12px; color: #f9e5b4; font-size: 1.05rem; font-weight: 800; letter-spacing: .11em; text-decoration: none; text-transform: uppercase; }
 .lobby-brand__mark { display: grid; width: 39px; height: 39px; place-items: center; border: 1px solid #e8c57d80; border-radius: 50%; color: #ffe09a; box-shadow: 0 0 22px #efbd5440; font-size: 1.5rem; }
 .lobby-account { display: flex; align-items: center; gap: 10px; color: #d5dfec; font-size: .87rem; }
+.lobby-account a { color: #e9f3f4; font-weight: 650; text-decoration: none; }
+.lobby-account a:hover { color: #f8df9a; text-decoration: underline; }
 .lobby-account__avatar { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 50%; background: #253a56; color: #87e4cf; }
 .lobby-account button { min-height: 34px; margin-left: 12px; border-color: #45566c; border-radius: 999px; padding: 5px 14px; color: #cbd5e5; font-size: .82rem; }
 .lobby-account button:hover { border-color: #92abca; color: white; }

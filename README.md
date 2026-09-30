@@ -40,6 +40,8 @@ The sign-in screen uses the API-backed account service. Start the backend with `
 
 The backend exposes `POST /api/auth/register`, `POST /api/auth/login`, and `GET /api/auth/me`. Copy `.env.example` to `.env` and replace the development JWT secret and PostgreSQL password before sharing the service. The frontend uses `VITE_API_BASE_URL` when supplied, otherwise `http://127.0.0.1:8000`.
 
+Click your name in the lobby or arena to open `/profile.html`. There you can edit the display name shown in new duels without changing the login used to sign in. `GET /api/profile` returns the account and online duel totals; `PATCH /api/profile` updates the display name. Online wins, losses, and draws are recorded by the server when a room finishes. Local training-bot matches are deliberately excluded from those totals.
+
 ## Play an online duel
 
 Start the API/PostgreSQL and frontend as above. After sign-in, the lobby at `/lobby.html` offers **Face the training bot** (a local scripted opponent) or **Challenge a friend**. For a friend duel, sign in with two different accounts in separate browsers or private windows. One player chooses **Create a room**, then copies the invite link from the arena; the other opens that link or enters its six-character code in the lobby. Invite links survive sign-in. The match starts when both players connect. Webcam rune casts and the three spell buttons send commands to the server. The server owns health, shields, warnings, damage, and winner; the browser only animates its snapshots. **Back to lobby** returns to the mode selection. This first version holds rooms in one API process and loses them on restart. See [the multiplayer plan](docs/multiplayer-plan.md) for the protocol and remaining reliability work.

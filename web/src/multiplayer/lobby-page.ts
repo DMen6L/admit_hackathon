@@ -9,7 +9,7 @@ const sessionStatus = document.querySelector<HTMLElement>('#lobby-session-status
 
 void auth.restoreSession().then((user) => {
   if (!user) { window.location.replace(import.meta.env.BASE_URL); return; }
-  document.querySelector<HTMLElement>('#current-user')!.textContent = user.login;
+  document.querySelector<HTMLElement>('#current-user')!.textContent = user.displayName || user.login;
   screen.hidden = false;
   sessionStatus.hidden = true;
   mountRoomLobby(auth);

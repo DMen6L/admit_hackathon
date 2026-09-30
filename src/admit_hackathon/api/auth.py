@@ -50,13 +50,13 @@ def auth_response(user: User) -> AuthResponse:
         access_token=token,
         token_type="bearer",
         expires_in=expires_in,
-        user=UserResponse.model_validate(user),
+        user=UserResponse(id=user.id, login=user.login, display_name=user.display_name or user.login),
     )
 
 
 def register_user(credentials: Credentials, db: Session) -> AuthResponse:
     login = normalize_login(credentials.login)
-    user = User(login=login, password_hash=password_hash.hash(credentials.password))
+    user = User(login=login, display_name=login, password_hash=password_hash.hash(credentials.password))
     db.add(user)
     try:
         db.commit()

@@ -10,6 +10,7 @@ export type RegistrationCredentials = AuthCredentials;
 export interface AuthUser {
   id: string;
   login: string;
+  displayName?: string;
 }
 
 export interface AuthService {
@@ -108,7 +109,9 @@ function parseAuthResponse(body: unknown): { accessToken: string; user: AuthUser
     || typeof candidate.login !== 'string'
   ) return undefined;
 
-  return { accessToken, user: { id: candidate.id, login: candidate.login } };
+  const displayName = 'displayName' in candidate && typeof candidate.displayName === 'string'
+    ? candidate.displayName : undefined;
+  return { accessToken, user: { id: candidate.id, login: candidate.login, ...(displayName ? { displayName } : {}) } };
 }
 
 export class ApiAuthService implements AuthService {

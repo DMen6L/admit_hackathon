@@ -86,7 +86,7 @@ def test_login_and_me_endpoints_use_the_created_user() -> None:
 
     assert login_response.status_code == 200
     assert me_response.status_code == 200
-    assert me_response.json() == {"id": str(db.user.id), "login": "arcane.wanderer"}
+    assert me_response.json() == {"id": str(db.user.id), "login": "arcane.wanderer", "displayName": "arcane.wanderer"}
 
 
 def test_auth_routes_reject_invalid_credentials() -> None:

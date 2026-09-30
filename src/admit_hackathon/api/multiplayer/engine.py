@@ -24,6 +24,7 @@ class CastRejected(ValueError):
 class Fighter:
     user_id: UUID
     login: str
+    display_name: str
     health: int = HEALTH
     cast_at_ms: int = -10_000_000_000_000
     shield_at_ms: int = -10_000_000_000_000
@@ -56,12 +57,12 @@ class Match:
     impacts: list[Impact] = field(default_factory=list)
     winner: int | None = None
 
-    def add_player(self, user_id: UUID, login: str) -> int:
+    def add_player(self, user_id: UUID, login: str, display_name: str | None = None) -> int:
         if any(player.user_id == user_id for player in self.players):
             raise CastRejected("already_joined")
         if len(self.players) >= 2:
             raise CastRejected("room_full")
-        self.players.append(Fighter(user_id=user_id, login=login))
+        self.players.append(Fighter(user_id=user_id, login=login, display_name=display_name or login))
         self.revision += 1
         return len(self.players) - 1
 
@@ -131,7 +132,7 @@ class Match:
             "type": "state", "v": 1, "revision": self.revision, "serverTimeMs": now_ms,
             "phase": self.phase,
             "players": [
-                {"seat": seat, "login": player.login, "health": player.health,
+                {"seat": seat, "login": player.login, "displayName": player.display_name, "health": player.health,
                  "castReadyAtMs": player.cast_at_ms + COOLDOWN_MS,
                  "shieldReadyAtMs": player.shield_at_ms + COOLDOWN_MS,
                  "shieldUntilMs": player.shield_until_ms}

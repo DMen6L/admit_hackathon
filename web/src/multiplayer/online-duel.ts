@@ -48,7 +48,7 @@ export function mountOnlineDuel(root: HTMLElement, code: string, auth: ApiAuthSe
     if (!state) return;
     for (const index of [0, 1]) {
       const player = state.players[index];
-      const name = player?.login ?? 'Waiting for friend';
+      const name = player?.displayName || player?.login || 'Waiting for friend';
       root.querySelectorAll<HTMLElement>(`[data-player-name="${index}"]`).forEach((element) => { element.textContent = name; });
       root.querySelector<HTMLProgressElement>(`[data-health="${index}"]`)!.value = player?.health ?? 0;
       root.querySelector<HTMLElement>(`[data-health-label="${index}"]`)!.textContent = player ? `${player.health} / 100` : '—';

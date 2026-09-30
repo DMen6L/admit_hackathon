@@ -59,6 +59,14 @@ describe('API authentication', () => {
       .resolves.toEqual(user);
   });
 
+  it('preserves an editable display name separately from the sign-in login', async () => {
+    const namedUser = { ...user, displayName: 'Moon Warden' };
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(response({ accessToken: 'jwt-token', user: namedUser }));
+
+    await expect(auth(fetchImpl).signIn({ login: user.login, password: 'Spellbound1', keepSignedIn: false }))
+      .resolves.toEqual(namedUser);
+  });
+
   it('maps a 401 response to invalid credentials', async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(response({ detail: 'The login or password is incorrect.' }, false, 401));
 

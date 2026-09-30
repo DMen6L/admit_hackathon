@@ -372,13 +372,13 @@ void auth.restoreSession().then((user) => {
     window.location.replace(loginUrl.toString());
     return;
   }
-  document.querySelector('#current-user')!.textContent = user.login;
+  document.querySelector('#current-user')!.textContent = user.displayName || user.login;
   document.querySelector<HTMLElement>('#game-screen')!.hidden = false;
   document.querySelector<HTMLElement>('#battle-session-status')!.hidden = true;
   if (roomCode) duel = mountOnlineDuel(document.querySelector<HTMLElement>('#duel')!, roomCode, auth);
   else {
     const practice = mountDuel(document.querySelector<HTMLElement>('#duel')!);
-    practice.setParticipants(user.login);
+    practice.setParticipants(user.displayName || user.login);
     duel = practice;
   }
 }).catch(() => {

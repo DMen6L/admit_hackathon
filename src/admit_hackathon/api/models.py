@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, String, Text, text
+from sqlalchemy import DateTime, Integer, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -18,7 +18,12 @@ class User(Base):
         server_default=text("gen_random_uuid()"),
     )
     login: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    display_name: Mapped[str] = mapped_column(String(64), nullable=False)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    duels_played: Mapped[int] = mapped_column(Integer, server_default=text("0"), nullable=False)
+    duels_won: Mapped[int] = mapped_column(Integer, server_default=text("0"), nullable=False)
+    duels_lost: Mapped[int] = mapped_column(Integer, server_default=text("0"), nullable=False)
+    duels_drawn: Mapped[int] = mapped_column(Integer, server_default=text("0"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"), nullable=False,
     )

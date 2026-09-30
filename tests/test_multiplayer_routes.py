@@ -11,8 +11,8 @@ from admit_hackathon.api.multiplayer import rooms
 
 
 def test_two_authenticated_users_join_and_exchange_authoritative_state(monkeypatch) -> None:
-    first = User(id=uuid4(), login="first", password_hash="unused")
-    second = User(id=uuid4(), login="second", password_hash="unused")
+    first = User(id=uuid4(), login="first", display_name="Moon Warden", password_hash="unused")
+    second = User(id=uuid4(), login="second", display_name="Ember Shade", password_hash="unused")
     users = {first.id: first, second.id: second}
 
     class FakeSession:
@@ -54,6 +54,7 @@ def test_two_authenticated_users_join_and_exchange_authoritative_state(monkeypat
                     initial = two.receive_json()
                     assert initial["phase"] == "active"
                     assert [player["login"] for player in initial["players"]] == ["first", "second"]
+                    assert [player["displayName"] for player in initial["players"]] == ["Moon Warden", "Ember Shade"]
                     one.send_json({"type": "cast", "v": 1, "seq": 1, "spellId": "rune.triangle"})
                     warning = one.receive_json()
                     assert warning["attacks"][0]["seat"] == 0
