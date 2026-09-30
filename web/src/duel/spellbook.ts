@@ -14,7 +14,7 @@ const SPELLS: readonly SpellGuideEntry[] = [
   { name: 'Spark', glyph: '━', gesture: 'Draw one straight line', effect: 'Fast, light attack · 7 damage' },
 ];
 
-export function mountSpellbook(root: HTMLElement): { dispose(): void } {
+export function mountSpellbook(root: HTMLElement, online = false): { dispose(): void } {
   const toggle = root.querySelector<HTMLButtonElement>('#spellbook-toggle')!;
   const closeButton = root.querySelector<HTMLButtonElement>('#spellbook-close')!;
   const panel = root.querySelector<HTMLElement>('#spellbook-panel')!;
@@ -22,8 +22,9 @@ export function mountSpellbook(root: HTMLElement): { dispose(): void } {
   const count = root.querySelector<HTMLElement>('#spellbook-count')!;
   const abort = new AbortController();
 
-  count.textContent = String(SPELLS.length);
-  list.replaceChildren(...SPELLS.map(({ name, glyph, gesture, effect }) => {
+  const availableSpells = online ? SPELLS.slice(0, 3) : SPELLS;
+  count.textContent = String(availableSpells.length);
+  list.replaceChildren(...availableSpells.map(({ name, glyph, gesture, effect }) => {
     const item = document.createElement('li');
     const symbol = document.createElement('span');
     symbol.className = 'spellbook-list__glyph';

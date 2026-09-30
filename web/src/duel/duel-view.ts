@@ -11,7 +11,7 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
   canvas.parentElement!.style.backgroundImage = `url("${base}arena.svg")`;
   const ctx = canvas.getContext('2d')!;
   const status = root.querySelector<HTMLElement>('[data-duel-status]')!;
-  const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-pause], [data-reset]')];
+  const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-pause], [data-reset], [data-spell]')];
   const images = new Map<string, HTMLImageElement>();
   let manifest: AssetManifest | undefined;
   let frameId = 0;
@@ -51,7 +51,10 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
     const label = model.winner !== undefined ? 'Duel finished' : paused ? 'Paused'
       : incoming && model.canCast(0, 'shield', clock) ? 'Shield ready' : ready === CAST_COOLDOWN_MS ? 'Ready' : 'Recovering…';
     if (readyLabel.textContent !== label) readyLabel.textContent = label;
-    buttons.forEach((button) => { button.disabled = !manifest; });
+    buttons.forEach((button) => {
+      button.disabled = !manifest || (button.hasAttribute('data-spell') &&
+        (paused || !model.canCast(0, button.dataset.spell as Spell, clock)));
+    });
     threat.hidden = !incoming;
     if (incoming) {
       const charging = clock < incoming.releaseAt;
@@ -92,6 +95,7 @@ export function mountDuel(root: HTMLElement): { setParticipants(playerName: stri
     button.addEventListener('click', () => {
       if (button.hasAttribute('data-reset')) { model.reset(); clock = 0; nextEnemyCastAt = 3500; enemyCastIndex = 0; paused = false; announce(); }
       else if (button.hasAttribute('data-pause')) { paused = !paused; announce(); }
+      else if (button.dataset.spell) cast(0, button.dataset.spell as Spell);
     }, { signal: abort.signal });
   });
   window.addEventListener('spell-cast', ((event: CustomEvent<SpellCastPayload>) => {

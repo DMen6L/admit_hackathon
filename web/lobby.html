@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#091321" />
+    <title>Choose your duel · Wizard Duel</title>
+  </head>
+  <body class="lobby-page">
+    <p id="lobby-session-status" role="status">Preparing your spellbook…</p>
+    <main id="lobby-screen" class="lobby-shell" hidden>
+      <header class="lobby-header">
+        <a class="lobby-brand" href="./lobby.html"><span class="lobby-brand__mark" aria-hidden="true">✦</span> Wizard Duel</a>
+        <div class="lobby-account"><span class="lobby-account__avatar" aria-hidden="true">✧</span><span id="current-user"></span><button id="sign-out" type="button">Sign out</button></div>
+      </header>
+
+      <section class="lobby-intro" aria-labelledby="lobby-title">
+        <p class="eyebrow">The courtyard awaits</p>
+        <h1 id="lobby-title">How will you duel tonight?</h1>
+        <p>Choose a training match or invite a friend. Your hands cast the spells; the camera stays on your device.</p>
+      </section>
+
+      <section class="lobby-modes" aria-label="Choose a game mode">
+        <article class="mode-card mode-card--bot">
+          <div class="mode-card__art" aria-hidden="true"><span class="mode-card__rune">△</span><img src="./assets/game/alisher/idle-01.svg" alt="" /></div>
+          <div class="mode-card__content">
+            <p class="mode-card__index">01 <span>Solo training</span></p>
+            <h2>Face the training bot</h2>
+            <p>A scripted rival telegraphs each attack. Practice reading runes, timing your shield, and casting at your own pace.</p>
+            <div class="mode-card__meta"><span>One player</span><span>Instant start</span><span>Local match</span></div>
+            <a class="mode-card__action" href="./battle.html?mode=practice">Start training <span aria-hidden="true">↗</span></a>
+          </div>
+        </article>
+
+        <article id="room-lobby" class="mode-card mode-card--friend">
+          <div class="mode-card__art" aria-hidden="true"><span class="mode-card__rune">○</span><img src="./assets/game/berik/idle-01.svg" alt="" /></div>
+          <div class="mode-card__content">
+            <p class="mode-card__index">02 <span>Private duel</span></p>
+            <h2>Challenge a friend</h2>
+            <p>Create a private room and share its link, or enter a friend's six-character code. Both players need separate accounts.</p>
+            <div class="mode-card__meta"><span>Two players</span><span>Live match</span><span>Private code</span></div>
+            <button class="mode-card__action" type="button" data-room-create>Create a room <span aria-hidden="true">↗</span></button>
+            <form class="room-join" data-room-join>
+              <label for="room-code">Already have a code?</label>
+              <div class="room-join__controls"><input id="room-code" data-room-code inputmode="text" maxlength="6" placeholder="ABC123" autocomplete="off" aria-label="Six-character room code" /><button type="submit">Join room</button></div>
+            </form>
+            <p class="room-status" data-room-status role="status" aria-live="polite">A room opens in the arena; copy its link there to invite your friend.</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="lobby-guide" aria-label="How a duel works">
+        <div><span aria-hidden="true">01</span><strong>Watch the rune</strong><p>Your rival's spell is visible before impact.</p></div>
+        <div><span aria-hidden="true">02</span><strong>Draw to cast</strong><p>Trace a triangle, circle, or lightning bolt with your hand.</p></div>
+        <div><span aria-hidden="true">03</span><strong>Release your palm</strong><p>Open your hand to send the spell, or use the buttons.</p></div>
+      </section>
+      <p class="lobby-footnote">No camera? Spell buttons work in both modes. <a href="./asset-preview.html">Explore the animation workshop →</a></p>
+    </main>
+    <script type="module" src="/src/multiplayer/lobby-page.ts"></script>
+  </body>
+</html>

@@ -1,6 +1,14 @@
 .battle-page { background: radial-gradient(ellipse at 50% 0, #17253f 0, #080c15 65%); min-height: 100vh; }
 .battle-shell { width: min(1680px, 100%); padding: 24px 32px; display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 27vw, 440px); gap: 20px; align-items: start; }
 .battle-shell .game-header { grid-column: 1 / -1; align-items: center; margin: 0; padding-bottom: 20px; border-bottom: 1px solid #283753; }
+.battle-back { display: inline-block; margin-bottom: 13px; color: #a7c4de; font-size: .8rem; text-decoration: none; }
+.battle-back:hover { color: #e8d191; }
+.battle-room { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 18px; border: 1px solid #527d95; border-radius: 10px; padding: 14px 18px; background: linear-gradient(90deg, #163145, #101e36); }
+.battle-room__eyebrow { display: block; color: #8bd9d5; font-size: .66rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+.battle-room strong { color: #ffe3a5; font-size: 1.45rem; letter-spacing: .18em; }
+.battle-room p { margin: 3px 0 0; color: #b9c9dc; font-size: .76rem; }
+.battle-room button { flex: 0 0 auto; border-color: #8bd9d5; color: #c6f5ed; font-size: .82rem; }
+.battle-room button:hover { background: #8bd9d51d; }
 .battle-shell h1 { font-size: 1.7rem; color: #ffe099; letter-spacing: -.035em; }
 .battle-shell .game-header p:last-child { margin: 4px 0 0; font-size: .85rem; }
 .battle-shell a { color: #adcaf2; text-underline-offset: 4px; }
@@ -14,9 +22,13 @@
 .battle-shell .duel-stage { border-block: 1px solid #293e5f; background-color: #071324; background-position: center; background-size: cover; }
 .battle-shell .duel-controls { justify-content: flex-end; padding: 16px 24px 0; }
 .battle-shell .duel-controls button { min-height: 38px; font-size: .8rem; }
+.duel-manual { margin: 12px 24px 0; border: 1px solid #3b5069; border-radius: 8px; padding: 9px 12px; background: #111d2e; }
+.duel-manual summary { color: #b9d8e7; font-size: .8rem; cursor: pointer; }
+.duel-manual__spells { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 10px; }
+.duel-manual__spells button { min-height: 36px; padding: 6px 12px; font-size: .79rem; }
 .battle-shell .duel-readiness { max-width: none; margin-inline: 24px; }
 .battle-shell .duel > p { margin-inline: 24px; }
-.battle-shell .tracker { grid-column: 2; grid-row: 2 / span 3; position: relative; z-index: 3; overflow: visible; border-radius: 6px; background: #101927; }
+.battle-shell .tracker { grid-column: 2; position: relative; z-index: 3; overflow: visible; border-radius: 6px; background: #101927; }
 .tracking-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 16px; }
 .tracking-title { font-size: 1rem; margin: 0; color: #d9e5f6; }
 .tracking-actions { display: flex; gap: 8px; }
@@ -46,6 +58,7 @@
 .battle-shell #status, .battle-shell .privacy { grid-column: 1; margin: 0; font-size: .8rem; }
 @media (max-width: 1000px) {
   .battle-shell { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .battle-room { flex-wrap: wrap; }
   .battle-shell .tracker { grid-column: 1; grid-row: auto; display: grid; grid-template-columns: minmax(280px, 48%) 1fr; }
   .tracking-heading { grid-column: 1 / -1; }
   .battle-shell .cast-result { grid-column: 1 / -1; }

@@ -16,6 +16,7 @@
 .enemy-telegraph__rune { flex: none; font-size: clamp(2rem, 5vw, 4rem); line-height: 1; color: #c9d8ee; text-shadow: 0 0 16px currentColor; animation: enemy-rune-pulse .75s ease-in-out infinite alternate; }
 .enemy-telegraph[data-spell="fireball"] { border-color: #ffad68; box-shadow: 0 0 30px #ff7b334d; }
 .enemy-telegraph[data-spell="fireball"] .enemy-telegraph__rune { color: #ffbb73; }
+.enemy-telegraph.enemy-left { left: 5%; right: auto; }
 .enemy-telegraph[data-spell="lightning"] .enemy-telegraph__rune { color: #d6baff; }
 .enemy-telegraph__copy { min-width: 0; display: grid; gap: 4px; }
 .enemy-telegraph__copy strong { text-transform: capitalize; font-size: clamp(.7rem, 1.4vw, 1rem); }
@@ -32,6 +33,7 @@
 .duel-readiness progress { width: 100%; height: 8px; accent-color: #ffe099; }
 .duel a { color: #a3d9ff; text-underline-offset: 3px; }
 .duel-controls { display: flex; gap: 8px; flex-wrap: wrap; padding: 16px 20px 0; }
+.duel-controls [hidden] { display: none; }
 .duel-controls button { font-size: .85rem; }
 .duel > p { margin: 12px 20px; font-size: .85rem; color: #aebdd1; }
 .duel > [data-duel-status] { min-height: 3em; color: #a5e5cb; }

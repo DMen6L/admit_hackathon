@@ -7,6 +7,7 @@ from .auth import get_current_user, login_user, register_user
 from .db import get_db
 from .schemas import AuthResponse, Credentials, UserResponse
 from .settings import get_settings
+from .multiplayer.rooms import router as multiplayer_router
 
 settings = get_settings()
 app = FastAPI(title="Webcam Magic API", version="0.1.0")
@@ -40,6 +41,7 @@ def me(user=Depends(get_current_user)) -> UserResponse:
 
 
 app.include_router(auth_router)
+app.include_router(multiplayer_router)
 
 
 @app.get("/")

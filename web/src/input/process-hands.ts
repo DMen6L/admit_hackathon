@@ -15,17 +15,17 @@ const PINKY_PIP = 18;
 const PINKY_TIP = 20;
 const WRIST = 0;
 
-const CAST_START_MS = 90;
-const POSE_GAP_MS = 100;
-const PALM_HOLD_MS = 90;
+const CAST_START_MS = 72;
+const POSE_GAP_MS = 120;
+const PALM_HOLD_MS = 72;
 const TRACKING_GRACE_MS = 220;
 const RESUME_WINDOW_MS = 350;
 const RELEASE_TIMEOUT_MS = 1500;
-const INDEX_EXTENSION_RATIO = 1.08;
-const CURLED_FINGER_RATIO = 1.08;
+const INDEX_EXTENSION_RATIO = 1.06;
+const CURLED_FINGER_RATIO = 1.12;
 const THUMB_PALM_RATIO = 1.25;
-const EXTENDED_FINGER_RATIO = 1.08;
-const PALM_FACING_COSINE = 0.45;
+const EXTENDED_FINGER_RATIO = 1.06;
+const PALM_FACING_COSINE = 0.42;
 
 export type CastingPhase = 'idle' | 'casting' | 'awaiting-release' | 'released';
 
@@ -105,7 +105,7 @@ function fingerIsCurled(points: Point[], pipIndex: number, tipIndex: number, han
   const pipDistance = distance(points[WRIST], points[pipIndex]);
   const palmDistance = distance(points[MIDDLE_MCP], points[tipIndex]);
   return tipDistance <= pipDistance * CURLED_FINGER_RATIO
-    && palmDistance <= handScale * 1.35;
+    && palmDistance <= handScale * 1.48;
 }
 
 function fingerIsExtended(points: Point[], pipIndex: number, tipIndex: number): boolean {
@@ -147,7 +147,7 @@ function releaseCorrectionFor(diagnostics: CastingDiagnostics): string | undefin
 /**
  * Recognize a stable raised-index casting pose and a deliberate open-palm release.
  *
- * The index must extend upward while the middle, ring, and pinky remain curled.
+ * The index must extend while the middle, ring, and pinky remain curled.
  * Casting ends only after the hand leaves that pose; a stable camera-facing open
  * palm then confirms the release. Distances use world landmarks when available.
  */
@@ -166,7 +166,7 @@ export function processHands(
     // without requiring the fingertip to stay above the knuckle on screen.
     const indexRaised = indexTipDistance > indexPipDistance * INDEX_EXTENSION_RATIO
       && distance(metricPoints[INDEX_MCP], metricPoints[INDEX_TIP])
-        > distance(metricPoints[INDEX_MCP], metricPoints[INDEX_PIP]) * 1.35;
+        > distance(metricPoints[INDEX_MCP], metricPoints[INDEX_PIP]) * 1.28;
 
     const curled = [
       fingerIsCurled(metricPoints, MIDDLE_PIP, MIDDLE_TIP, handScale),

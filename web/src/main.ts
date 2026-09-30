@@ -14,6 +14,8 @@ import { mountDuel } from './duel/duel-view';
 import { mountSpellbook } from './duel/spellbook';
 import './duel/battle-page.css';
 import { ApiAuthService } from './auth/auth-service';
+import { mountOnlineDuel } from './multiplayer/online-duel';
+import { roomCodeFromSearch } from './multiplayer/room-code';
 
 interface DevDiagnostics {
   onFrame(results: HandLandmarkerResult, processed: HandProcessingResult, timestampMs: number,
@@ -47,7 +49,7 @@ const resultCorrection = document.querySelector<HTMLElement>('#cast-result-corre
 const placeholder = document.querySelector<HTMLParagraphElement>('#placeholder')!;
 const preview = document.querySelector<HTMLDivElement>('.preview')!;
 const cameraViewToggle = document.querySelector<HTMLButtonElement>('#camera-view-toggle')!;
-const spellbook = mountSpellbook(document.querySelector<HTMLElement>('.tracker')!);
+const spellbook = mountSpellbook(document.querySelector<HTMLElement>('.tracker')!, Boolean(roomCodeFromSearch(window.location.search)));
 
 cameraViewToggle.addEventListener('click', () => {
   const showCamera = preview.dataset.view !== 'camera';
@@ -358,21 +360,32 @@ async function startCamera(): Promise<void> {
 
 startButton.addEventListener('click', () => { void startCamera(); });
 stopButton.addEventListener('click', () => stopCamera());
-window.addEventListener('pagehide', () => stopCamera());
+window.addEventListener('pagehide', () => { stopCamera(); duel?.dispose(); });
 
-const duel = mountDuel(document.querySelector<HTMLElement>('#duel')!);
+let duel: { reset(): void; dispose(): void } | undefined;
 const auth = new ApiAuthService(globalThis.fetch.bind(globalThis), window.localStorage, window.sessionStorage);
 void auth.restoreSession().then((user) => {
-  if (!user) { window.location.replace(import.meta.env.BASE_URL); return; }
+  const roomCode = roomCodeFromSearch(window.location.search);
+  if (!user) {
+    const loginUrl = new URL(import.meta.env.BASE_URL, window.location.origin);
+    if (roomCode) loginUrl.searchParams.set('room', roomCode);
+    window.location.replace(loginUrl.toString());
+    return;
+  }
   document.querySelector('#current-user')!.textContent = user.login;
-  duel.setParticipants(user.login);
   document.querySelector<HTMLElement>('#game-screen')!.hidden = false;
   document.querySelector<HTMLElement>('#battle-session-status')!.hidden = true;
+  if (roomCode) duel = mountOnlineDuel(document.querySelector<HTMLElement>('#duel')!, roomCode, auth);
+  else {
+    const practice = mountDuel(document.querySelector<HTMLElement>('#duel')!);
+    practice.setParticipants(user.login);
+    duel = practice;
+  }
 }).catch(() => {
   document.querySelector('#battle-session-status')!.textContent = 'Session unavailable. Return to the login page and try again.';
 });
 document.querySelector<HTMLButtonElement>('#sign-out')!.addEventListener('click', () => {
-  stopCamera(); duel.reset();
+  stopCamera(); duel?.reset(); duel?.dispose();
   void auth.signOut().then(() => window.location.replace(import.meta.env.BASE_URL)).catch(() => setStatus('Sign-out failed. Please try again.', true));
 });
 
@@ -394,7 +407,7 @@ if (import.meta.env.DEV) {
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     spellbook.dispose();
-    duel.dispose();
+    duel?.dispose();
     diagnostics?.dispose();
     stopCamera();
     void trackerLoading?.then((loaded) => loaded.close()).catch(() => {});

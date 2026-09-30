@@ -5,6 +5,7 @@ import {
   type SignInCredentials,
 } from './auth-service';
 import { validateCredentials } from './credentials';
+import { roomCodeFromSearch } from '../multiplayer/room-code';
 
 function requiredElement<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -90,7 +91,9 @@ export class AuthController {
   }
 
   private showGame(): void {
-    window.location.replace(`${import.meta.env.BASE_URL}battle.html`);
+    const roomCode = roomCodeFromSearch(window.location.search);
+    const destination = roomCode ? `battle.html?room=${roomCode}` : 'lobby.html';
+    window.location.replace(`${import.meta.env.BASE_URL}${destination}`);
   }
 
   private showLogin(): void {
@@ -112,8 +115,8 @@ export class AuthController {
     this.submitButton.disabled = pending;
     this.modeToggle.disabled = pending;
     this.submitButton.textContent = pending
-      ? (this.registering ? 'Creating your account…' : 'Entering the arena…')
-      : (this.registering ? 'Create account' : 'Enter the arena');
+      ? (this.registering ? 'Creating your account…' : 'Opening the lobby…')
+      : (this.registering ? 'Create account' : 'Choose your duel');
     this.form.setAttribute('aria-busy', String(pending));
   }
 
@@ -128,11 +131,11 @@ export class AuthController {
     this.registering = !this.registering;
     this.clearErrors();
     this.headingEyebrow.textContent = this.registering ? 'New spellcaster' : 'Welcome back';
-    this.heading.textContent = this.registering ? 'Create your account' : 'Enter the arena';
+    this.heading.textContent = this.registering ? 'Create your account' : 'Enter the lobby';
     this.headingCopy.textContent = this.registering
       ? 'Choose a login to begin your spellbook.'
-      : 'Sign in to continue to your spellbook.';
-    this.submitButton.textContent = this.registering ? 'Create account' : 'Enter the arena';
+      : 'Sign in to choose training or a duel with a friend.';
+    this.submitButton.textContent = this.registering ? 'Create account' : 'Choose your duel';
     this.modeToggle.textContent = this.registering ? 'Already have an account? Sign in' : 'Create an account';
     this.demoAccess.hidden = this.registering;
     this.login.focus();

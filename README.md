@@ -4,9 +4,9 @@
 
 ## Purpose of this document
 
-This README records the project's vision, requirements, and proposed architecture for future development. An initial browser hand-tracking prototype is available in `web/`; the game and gesture system are still at the planning stage.
+This README records the project's vision, architecture, and current implementation. The browser app in `web/` includes sign-in, a mode-selection lobby, local training, and private two-player duels.
 
-The central interaction is fixed. Gameplay details and technology choices remain open. Update this document as decisions are made, and distinguish confirmed decisions from experiments.
+The central interaction is fixed. Balance, presentation, and deployment details still need playtesting; distinguish implemented behavior from proposed improvements below.
 
 ## Run the hand-tracking prototype
 
@@ -40,6 +40,10 @@ The sign-in screen uses the API-backed account service. Start the backend with `
 
 The backend exposes `POST /api/auth/register`, `POST /api/auth/login`, and `GET /api/auth/me`. Copy `.env.example` to `.env` and replace the development JWT secret and PostgreSQL password before sharing the service. The frontend uses `VITE_API_BASE_URL` when supplied, otherwise `http://127.0.0.1:8000`.
 
+## Play an online duel
+
+Start the API/PostgreSQL and frontend as above. After sign-in, the lobby at `/lobby.html` offers **Face the training bot** (a local scripted opponent) or **Challenge a friend**. For a friend duel, sign in with two different accounts in separate browsers or private windows. One player chooses **Create a room**, then copies the invite link from the arena; the other opens that link or enters its six-character code in the lobby. Invite links survive sign-in. The match starts when both players connect. Webcam rune casts and the three spell buttons send commands to the server. The server owns health, shields, warnings, damage, and winner; the browser only animates its snapshots. **Back to lobby** returns to the mode selection. This first version holds rooms in one API process and loses them on restart. See [the multiplayer plan](docs/multiplayer-plan.md) for the protocol and remaining reliability work.
+
 `npm run setup` downloads Google's pretrained `hand_landmarker.task` model and copies the WebAssembly runtime from the installed MediaPipe package. Both are served locally by the app. The generated assets are ignored by Git; rerun setup after installing or updating dependencies. Players do not need Node.js, Python, or a local installation.
 
 The initial files are:
@@ -57,13 +61,13 @@ The initial files are:
 
 The preview is mirrored, while the landmark data passed to `processHands` uses the original camera coordinates. Results also arrive when no hands are detected. Handedness is a model classification, not a persistent identity for a hand across frames.
 
-The first custom casting gesture is a straightened index finger. `processHands` checks that the index is extended while the middle, ring, and pinky fingers are curled; the thumb may rest naturally and the wrist may rotate while drawing. The pose must remain stable for about 90 ms before `justStarted` is emitted. When the pose ends, the stroke enters a pending release state; the user must extend the four non-thumb fingers in a stable, camera-facing palm for about 90 ms to emit `justReleased`. A casting hand is highlighted in gold and labeled in the readout. Diagnostic fields provide concrete corrections for both casting and release poses.
+The first custom casting gesture is a straightened index finger. `processHands` checks that the index is extended while the middle, ring, and pinky fingers are curled; the thumb may rest naturally and the wrist may rotate while drawing. The pose must remain stable for about 72 ms before `justStarted` is emitted. When the pose ends, the stroke enters a pending release state; the user must extend the four non-thumb fingers in a stable, camera-facing palm for about 72 ms to emit `justReleased`. A casting hand is highlighted in gold and labeled in the readout. Diagnostic fields provide concrete corrections for both casting and release poses.
 
 While casting, the index fingertip writes a gold path on a dedicated canvas over the webcam preview. The recorder keeps both raw timestamped points and a filtered path. Recognition corrects for the video aspect ratio, then compares aligned outlines as well as topology, corners, closure, and circle geometry for six rune templates. A brief tracking or pose gap can be recovered; longer gaps and release timeouts cancel the pending attempt. A persistent result card reports **SPELL CAST**, **ALMOST**, **CAST FAILED**, or **CAST CANCELLED** with a correction when available. The shown match score is a heuristic and is not a calibrated probability.
 
 When running `npm run dev`, the **Recognition diagnostics** panel can record local landmark and stroke data, download it as JSON, and replay it through the current recognition pipeline. It never records camera pixels. Capture starts only when the developer clicks **Start local capture**. Replay does not dispatch spell events. Candidate scores and the last raw/filtered outline are shown in the panel. The panel and browser capture code are absent from the production build. For labeled evaluation, see [`web/evaluation/README.md`](web/evaluation/README.md).
 
-Confirmed matches are converted through `resolveSpell` into a `spell_cast` payload containing `spellId`, `sourceShapeId`, and confidence. The cast card also shows the resolved spell name and a short rune interpretation. The browser dispatches the payload as a `spell-cast` event; networking is intentionally left to a later WebSocket or HTTP adapter. Near misses and unrecognized shapes do not produce backend commands.
+Confirmed matches are converted through `resolveSpell` into a `spell_cast` payload containing `spellId`, `sourceShapeId`, and confidence. The cast card also shows the resolved spell name and a short rune interpretation. The browser dispatches the payload as a `spell-cast` event; practice handles all six spells locally, while online rooms send only fireball, shield, and lightning commands through the WebSocket adapter. Near misses and unrecognized shapes do not produce backend commands.
 
 This first prototype uses CPU inference on the main thread. It establishes the input pipeline, deliberate release gesture, and configurable shape matching; a broader gesture vocabulary, combat, and a playable scenario are not implemented yet. Move inference to a worker if it interferes with rendering as the game grows.
 

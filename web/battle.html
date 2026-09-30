@@ -4,15 +4,21 @@
     <main id="game-screen" class="game-shell battle-shell" hidden>
       <header class="game-header">
         <div>
-          <p class="eyebrow">Wizard Duel / Practice arena</p>
+          <a class="battle-back" href="./lobby.html">← Back to lobby</a>
+          <p class="eyebrow">Wizard Duel / Training bot</p>
           <h1>Moonlit courtyard</h1>
           <p>Draw your rune. Release your magic.</p>
         </div>
         <div class="account-menu" aria-label="Signed-in account">
-          <a href="./asset-preview.html">Workshop</a><span id="current-user"></span>
+          <span id="current-user"></span>
           <button id="sign-out" type="button">Sign out</button>
         </div>
       </header>
+
+      <section class="battle-room" data-room-panel hidden aria-label="Invite a friend">
+        <div><span class="battle-room__eyebrow">Private room</span><strong data-room-code></strong><p>Share this code or copy the invite link. The duel starts when your friend connects.</p></div>
+        <button type="button" data-copy-room>Copy invite link</button>
+      </section>
 
       <section id="duel" class="duel" aria-label="Practice duel">
         <div class="duel-head"><span><strong data-player-name="0">Player</strong> · ARCANE WARDEN</span><b>VS</b><span><strong data-player-name="1">Computer (AI)</strong> · EMBER SHADE</span></div>
@@ -35,11 +41,19 @@
         <div class="duel-controls">
           <button type="button" data-pause aria-pressed="false">Pause</button><button type="button" data-reset>Restart duel</button>
         </div>
+        <details class="duel-manual">
+          <summary>Cast without a camera</summary>
+          <div class="duel-manual__spells">
+            <button type="button" data-spell="fireball">△ Fireball</button>
+            <button type="button" data-spell="shield">○ Shield</button>
+            <button type="button" data-spell="lightning">ϟ Lightning</button>
+          </div>
+        </details>
         <div class="duel-readiness"><label for="cast-readiness">Your next cast <span data-ready-label>Ready</span></label><progress id="cast-readiness" max="900" value="900" data-readiness></progress></div>
         <p data-duel-status role="status" aria-live="polite">Preparing the arena…</p>
         <p data-load-error hidden>Artwork could not load. <a href="./battle.html">Reload and try again</a></p>
         
-        <p>Watch your opponent's charge. Draw a circle to shield, or use Time Lock to reveal and delay their spell.</p>
+        <p data-duel-help>Watch your opponent's charge. Draw a circle to shield, or use Time Lock to reveal and delay their spell.</p>
       </section>
 
       <section class="tracker" aria-label="Hand tracking preview">

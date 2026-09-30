@@ -25,6 +25,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        lobby: fileURLToPath(new URL('./lobby.html', import.meta.url)),
         battle: fileURLToPath(new URL('./battle.html', import.meta.url)),
         assets: fileURLToPath(new URL('./asset-preview.html', import.meta.url)),
       },

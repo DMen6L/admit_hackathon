@@ -115,6 +115,34 @@ describe('raised-index casting recognition', () => {
     expect(processHands(raised, 120).hands[0].justStarted).toBe(true);
   });
 
+  it('starts a cast after the shorter pose hold while rejecting a too-brief pose', () => {
+    const raised = resultFor({ label: 'Right', kind: 'raised' });
+    expect(processHands(raised, 0).hands[0].justStarted).toBe(false);
+    expect(processHands(raised, 70).hands[0].justStarted).toBe(false);
+    expect(processHands(raised, 72).hands[0].justStarted).toBe(true);
+  });
+
+  it('accepts a slightly imperfect curled finger while still rejecting an open hand', () => {
+    const almostCurled = resultFor({ label: 'Right', kind: 'raised' });
+    for (const points of [almostCurled.landmarks[0], almostCurled.worldLandmarks[0]]) {
+      points[12] = { x: 0.51, y: 0.623, z: 0 };
+    }
+    const pointing = processHands(almostCurled, 0).hands[0];
+    expect(pointing.curledFingerCount).toBe(3);
+    expect(pointing.poseValid).toBe(true);
+    expect(processHands(resultFor({ label: 'Right', kind: 'open' }), 33).hands[0].poseValid).toBe(false);
+  });
+
+  it('releases after the shorter palm hold, but not immediately', () => {
+    const raised = resultFor({ label: 'Right', kind: 'raised' });
+    const open = resultFor({ label: 'Right', kind: 'open' });
+    processHands(raised, 0);
+    processHands(raised, 72);
+    expect(processHands(open, 100).hands[0].justEnded).toBe(true);
+    expect(processHands(open, 170).hands[0].justReleased).toBe(false);
+    expect(processHands(open, 172).hands[0].justReleased).toBe(true);
+  });
+
   it('requires the other fingers to remain curled', () => {
     const open = processHands(resultFor({ label: 'Right', kind: 'open' }), 0).hands[0];
     const bent = processHands(resultFor({ label: 'Right', kind: 'bent' }), 33).hands[0];
@@ -169,7 +197,7 @@ describe('raised-index casting recognition', () => {
     for (let frame = 0; frame < 4; frame += 1) processHands(raised, frame * 33);
 
     const firstRelease = processHands(bent, 132).hands[0];
-    const ended = processHands(bent, 232).hands[0];
+    const ended = processHands(bent, 252).hands[0];
 
     expect(firstRelease.isCasting).toBe(true);
     expect(firstRelease.justEnded).toBe(false);
@@ -185,7 +213,7 @@ describe('raised-index casting recognition', () => {
     const open = resultFor({ label: 'Right', kind: 'open' });
     for (let frame = 0; frame < 4; frame += 1) processHands(raised, frame * 33);
     processHands(bent, 132);
-    const pending = processHands(bent, 232).hands[0];
+    const pending = processHands(bent, 252).hands[0];
     expect(pending.phase).toBe('awaiting-release');
     expect(pending.releaseCorrection).toContain('Extend');
 
@@ -219,7 +247,7 @@ describe('raised-index casting recognition', () => {
     const bent = resultFor({ label: 'Right', kind: 'bent' });
     for (let frame = 0; frame < 4; frame += 1) processHands(raised, frame * 33);
     processHands(bent, 132);
-    processHands(bent, 232);
+    processHands(bent, 252);
 
     for (let time = 330; time < 1700; time += 100) processHands(bent, time);
 
@@ -267,7 +295,7 @@ describe('raised-index casting recognition', () => {
     const bent = resultFor({ label: 'Right', kind: 'bent' });
     for (const time of [0, 33, 66, 99]) processHands(raised, time);
     processHands(bent, 132);
-    expect(processHands(bent, 232).hands[0].phase).toBe('awaiting-release');
+    expect(processHands(bent, 252).hands[0].phase).toBe('awaiting-release');
     const resumed = processHands(raised, 265).hands[0];
     expect(resumed.phase).toBe('casting');
     expect(resumed.justStarted).toBe(false);

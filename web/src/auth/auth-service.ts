@@ -119,6 +119,14 @@ export class ApiAuthService implements AuthService {
     private readonly baseUrl = apiBaseUrl(),
   ) {}
 
+  accessToken(): string | undefined {
+    return this.readStoredSession()?.accessToken;
+  }
+
+  apiBaseUrl(): string {
+    return this.baseUrl;
+  }
+
   async restoreSession(): Promise<AuthUser | undefined> {
     const stored = this.readStoredSession();
     if (!stored) return undefined;

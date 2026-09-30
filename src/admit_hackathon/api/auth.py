@@ -81,9 +81,14 @@ def get_current_user(
 ) -> User:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+    return user_from_token(credentials.credentials, db)
+
+
+def user_from_token(token: str, db: Session) -> User:
+    """Use the same JWT and account check for HTTP requests and room sockets."""
     settings = get_settings()
     try:
-        payload = jwt.decode(credentials.credentials, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         if payload.get("type") != "access":
             raise jwt.InvalidTokenError("Unexpected token type")
         user_id = UUID(str(payload["sub"]))
