@@ -1,6 +1,6 @@
 import './style.css';
 import { DrawingUtils, HandLandmarker, type HandLandmarkerResult } from '@mediapipe/tasks-vision';
-import { createHandTracker } from './vision/hand-tracker';
+import { createHandTracker, isHandTrackerAssetError } from './vision/hand-tracker';
 import { processHands, resetHandProcessing, type HandProcessingResult } from './input/process-hands';
 import { IndexPathRecorder, type RecordedStroke } from './drawing/path-recorder';
 import { DEFAULT_SHAPE_TEMPLATES, ShapeEvaluator, type ShapeEvaluation } from './shapes/shape-evaluator';
@@ -356,8 +356,10 @@ async function startCamera(): Promise<void> {
     if (activeSession !== session) return;
     console.error('Could not start hand tracking:', error);
     stopCamera();
-    setStatus(stage === 'model'
-      ? 'The tracking model could not load. Check that setup finished, then reload and try again.'
+    setStatus(stage === 'model' && isHandTrackerAssetError(error)
+      ? 'Hand-tracking files are missing from this deployment. Rebuild with the MediaPipe setup step, then reload.'
+      : stage === 'model'
+        ? 'The hand-tracking model could not initialize. Reload and try again.'
       : cameraError(error), true);
   }
 }

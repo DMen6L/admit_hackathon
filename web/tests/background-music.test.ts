@@ -41,6 +41,9 @@ describe('background music', () => {
 
     music.setActive(true);
     await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(track.play).not.toHaveBeenCalled();
+    listeners.get('pointerdown')?.({} as Event);
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(track.play).toHaveBeenCalledTimes(1);
     music.setActive(false);
     expect(track.paused).toBe(true);
@@ -85,9 +88,12 @@ describe('background music', () => {
     const music = new BackgroundMusic({ subscribe(listener) { listener(false); return () => {}; } }, track as unknown as HTMLAudioElement);
     music.setActive(true);
     await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(track.play).not.toHaveBeenCalled();
+    listeners.get('pointerdown')?.({} as Event);
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(track.play).toHaveBeenCalledTimes(1);
     listeners.get('pointerdown')?.({} as Event);
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(track.play).toHaveBeenCalledTimes(2);
     music.dispose();
   });

@@ -7,6 +7,7 @@ const modelDirectory = new URL('public/models/', root);
 const modelFile = new URL('hand_landmarker.task', modelDirectory);
 const modelUrl = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 const modelSha256 = 'fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1';
+const requiredWasmFiles = ['vision_wasm_internal.js', 'vision_wasm_internal.wasm'];
 
 await mkdir(modelDirectory, { recursive: true });
 await cp(
@@ -14,6 +15,13 @@ await cp(
   fileURLToPath(new URL('public/wasm/', root)),
   { recursive: true },
 );
+for (const file of requiredWasmFiles) {
+  try {
+    await readFile(new URL(`public/wasm/${file}`, root));
+  } catch (error) {
+    throw new Error(`MediaPipe WASM asset is missing after setup: public/wasm/${file}`, { cause: error });
+  }
+}
 console.log('Copied the WebAssembly runtime from the installed MediaPipe package.');
 
 // Validate the pinned model, including cached copies and incomplete downloads.

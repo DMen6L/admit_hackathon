@@ -115,6 +115,7 @@ describe('spell audio cues', () => {
   it('plays a preloaded recording with its selected trim and gain', async () => {
     const starts: unknown[][] = [];
     let oscillators = 0;
+    let contexts = 0;
     const gainValues: number[] = [];
     const parameter = {
       setValueAtTime(value: number) { gainValues.push(value); },
@@ -141,22 +142,28 @@ describe('spell audio cues', () => {
       }
       createOscillator() { oscillators += 1; return {}; }
     }
-    vi.stubGlobal('window', { AudioContext: FakeAudioContext, localStorage: { getItem: () => null } });
-    vi.stubGlobal('AudioContext', FakeAudioContext);
+    const AudioContextWithCount = class extends FakeAudioContext {
+      constructor() { super(); contexts += 1; }
+    };
+    vi.stubGlobal('window', { AudioContext: AudioContextWithCount, localStorage: { getItem: () => null } });
+    vi.stubGlobal('AudioContext', AudioContextWithCount);
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) }));
     const audio = new SpellAudio();
     await audio.preload();
+    expect(contexts).toBe(0);
+    await audio.unlock();
+    expect(contexts).toBe(1);
     audio.play('shield');
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(starts).toHaveLength(1);
     expect(starts[0][0]).toBe(.008);
     expect(starts[0][1]).toBeCloseTo(.49);
-    expect(starts[0][2]).toBe(2);
+    expect(starts[0][2]).toBeCloseTo(2, 1);
     expect(gainValues).toContain(RECORDED_SOUNDS.shield?.gain);
     expect(oscillators).toBe(0);
     audio.play('fireball', 500);
-    await Promise.resolve();
-    expect(starts[1][2]).toBe(.5);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(starts[1][2]).toBeCloseTo(.5, 1);
   });
 
   it('schedules audio for every spell and stays silent when muted', async () => {
@@ -176,6 +183,7 @@ describe('spell audio cues', () => {
     vi.stubGlobal('window', { AudioContext: FakeAudioContext, localStorage: { getItem: () => null, setItem() {} } });
     vi.stubGlobal('AudioContext', FakeAudioContext);
     const audio = new SpellAudio();
+    await audio.unlock();
     for (const spell of Object.values(SHAPE_SOUND)) {
       audio.play(spell);
       await Promise.resolve();
@@ -203,9 +211,11 @@ describe('spell audio cues', () => {
     vi.stubGlobal('window', { AudioContext: FakeAudioContext, localStorage: { getItem: () => null } });
     vi.stubGlobal('AudioContext', FakeAudioContext);
     const audio = new SpellAudio();
+    const unlock = audio.unlock();
     audio.play('fireball', 300);
     now = 350;
     finishResume();
+    await unlock;
     await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();

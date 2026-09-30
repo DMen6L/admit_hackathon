@@ -7,6 +7,7 @@ const MUSIC_FILE = '[trimmed] videoplayback.wav';
 export class BackgroundMusic {
   private active = false;
   private muted = false;
+  private interacted = false;
   private disposed = false;
   private pendingPlay: Promise<void> | undefined;
   private readonly unsubscribe: () => void;
@@ -20,8 +21,8 @@ export class BackgroundMusic {
       this.muted = muted;
       this.sync();
     });
-    document.addEventListener('pointerdown', this.retry);
-    document.addEventListener('keydown', this.retry);
+    document.addEventListener('pointerdown', this.interact);
+    document.addEventListener('keydown', this.interact);
     document.addEventListener('visibilitychange', this.sync);
   }
 
@@ -31,13 +32,17 @@ export class BackgroundMusic {
     this.sync();
   }
 
-  private readonly retry = () => { this.sync(); };
+  private readonly interact = () => {
+    this.interacted = true;
+    this.sync();
+  };
 
   private readonly sync = () => {
     if (this.disposed || !this.active || this.muted || document.hidden) {
       this.audio.pause();
       return;
     }
+    if (!this.interacted) return;
     if (!this.audio.paused || this.pendingPlay) return;
     try {
       let started = false;
@@ -57,8 +62,8 @@ export class BackgroundMusic {
     this.disposed = true;
     this.audio.pause();
     this.unsubscribe();
-    document.removeEventListener('pointerdown', this.retry);
-    document.removeEventListener('keydown', this.retry);
+    document.removeEventListener('pointerdown', this.interact);
+    document.removeEventListener('keydown', this.interact);
     document.removeEventListener('visibilitychange', this.sync);
   }
 }

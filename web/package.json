@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "assets:extract": "node scripts/extract-game-assets.mjs",
-    "predev": "npm run assets:extract",
-    "prebuild": "npm run assets:extract",
+    "assets:verify": "node scripts/verify-build-assets.mjs",
+    "predev": "npm run setup && npm run assets:extract",
+    "prebuild": "npm run setup && npm run assets:extract",
     "setup": "node scripts/setup-assets.mjs",
     "dev": "vite --host 127.0.0.1",
     "test": "vitest run",
     "evaluate": "node scripts/evaluate-captures.mjs",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && npm run assets:verify",
     "preview": "vite preview --host 127.0.0.1"
   },
   "dependencies": {

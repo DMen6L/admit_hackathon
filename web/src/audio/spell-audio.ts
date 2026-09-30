@@ -83,8 +83,11 @@ function audibleWindow(buffer: AudioBuffer): SoundSample {
 export class SpellAudio {
   private context: AudioContext | undefined;
   private muted = false;
+  private userInteracted = false;
+  private unlockPromise: Promise<void> | undefined;
   private readonly listeners = new Set<(muted: boolean) => void>();
   private readonly samples = new Map<Spell, SoundSample>();
+  private readonly pendingSamples = new Map<Spell, ArrayBuffer>();
   private readonly sampleLoads = new Map<Spell, Promise<void>>();
 
   constructor() {
@@ -108,10 +111,27 @@ export class SpellAudio {
 
   async unlock(): Promise<void> {
     if (this.muted || !('AudioContext' in window)) return;
-    try {
-      this.context ??= new AudioContext();
-      if (this.context.state === 'suspended') await this.context.resume();
-    } catch { /* Keep gameplay working if audio is unavailable. */ }
+    this.userInteracted = true;
+    if (this.unlockPromise) return this.unlockPromise;
+    this.unlockPromise = (async () => {
+      try {
+        this.context ??= new AudioContext();
+        if (this.context.state === 'suspended') await this.context.resume();
+        await this.decodePendingSamples();
+      } catch { /* Keep gameplay working if audio is unavailable. */ }
+    })().finally(() => { this.unlockPromise = undefined; });
+    return this.unlockPromise;
+  }
+
+  private async decodePendingSamples(): Promise<void> {
+    const context = this.context;
+    if (!context || context.state !== 'running') return;
+    for (const [spell, data] of this.pendingSamples) {
+      try {
+        this.samples.set(spell, audibleWindow(await context.decodeAudioData(data.slice(0))));
+        this.pendingSamples.delete(spell);
+      } catch { /* A malformed recording falls back to the synthesized cue. */ }
+    }
   }
 
   async preload(): Promise<void> {
@@ -123,8 +143,8 @@ export class SpellAudio {
       const loading = fetch(audioAssetUrl(settings.file))
         .then((response) => { if (!response.ok) throw new Error('Audio unavailable'); return response.arrayBuffer(); })
         .then(async (data) => {
-          this.context ??= new AudioContext();
-          this.samples.set(spell, audibleWindow(await this.context.decodeAudioData(data)));
+          this.pendingSamples.set(spell, data);
+          await this.decodePendingSamples();
         })
         .catch(() => { /* A missing recording falls back to the synthesized cue. */ });
       this.sampleLoads.set(spell, loading);
@@ -163,6 +183,7 @@ export class SpellAudio {
 
   play(spell: Spell, maxDurationMs = MAX_SOUND_SECONDS * 1000): void {
     if (this.muted || maxDurationMs <= 60) return;
+    if (!this.userInteracted) return;
     const schedule = (remainingMs: number) => {
       const context = this.context;
       if (!context || context.state !== 'running' || this.muted || remainingMs <= 60) return;

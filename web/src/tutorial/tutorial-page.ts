@@ -2,7 +2,7 @@ import '../style.css';
 import '../multiplayer/lobby.css';
 import './tutorial.css';
 import { ApiAuthService } from '../auth/auth-service';
-import { createHandTracker } from '../vision/hand-tracker';
+import { createHandTracker, isHandTrackerAssetError } from '../vision/hand-tracker';
 import { processHands, resetHandProcessing } from '../input/process-hands';
 import { IndexPathRecorder, type PathPoint, type RecordedStroke } from '../drawing/path-recorder';
 import { DEFAULT_SHAPE_TEMPLATES, ShapeEvaluator } from '../shapes/shape-evaluator';
@@ -220,8 +220,10 @@ cameraStart.addEventListener('click', async () => {
     if (session !== cameraSession) return;
     cameraStatus.textContent = 'Point one index finger to draw.';
     trackFrame(session);
-  } catch {
-    if (session === cameraSession) stopCamera('Camera could not start. Check permission, or use mouse/touch.');
+  } catch (error) {
+    if (session === cameraSession) stopCamera(isHandTrackerAssetError(error)
+      ? 'Hand-tracking files are missing from this deployment. Rebuild the frontend, or use mouse/touch.'
+      : 'Camera could not start. Check permission, or use mouse/touch.');
   }
 });
 cameraStop.addEventListener('click', () => stopCamera());
